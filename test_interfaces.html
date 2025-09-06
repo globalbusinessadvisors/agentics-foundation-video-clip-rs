@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Clipper Interface Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .interface-card { 
+            border: 1px solid #ccc; 
+            border-radius: 8px; 
+            padding: 15px; 
+            margin: 15px 0; 
+            background-color: #f9f9f9;
+        }
+        .test-link { 
+            display: inline-block; 
+            background: #007bff; 
+            color: white; 
+            padding: 8px 16px; 
+            text-decoration: none; 
+            border-radius: 4px; 
+            margin-right: 10px;
+        }
+        .status { 
+            padding: 5px 10px; 
+            border-radius: 4px; 
+            font-weight: bold; 
+        }
+        .working { background: #d4edda; color: #155724; }
+        .issue { background: #f8d7da; color: #721c24; }
+        .unknown { background: #fff3cd; color: #856404; }
+    </style>
+</head>
+<body>
+    <h1>🎬 Video Clipper Interface Test</h1>
+    <p>Test page to verify which interfaces are working properly.</p>
+    
+    <div class="interface-card">
+        <h3>index.html</h3>
+        <p><span class="status working">WORKING</span> FFmpeg.js only implementation (no WASM)</p>
+        <a href="/index.html" class="test-link" target="_blank">Test Interface</a>
+        <small>Simple drag-and-drop interface using FFmpeg.js for video processing.</small>
+    </div>
+
+    <div class="interface-card">
+        <h3>index_simple.html</h3>
+        <p><span class="status working">WORKING</span> Identical to index.html (duplicate)</p>
+        <a href="/index_simple.html" class="test-link" target="_blank">Test Interface</a>
+        <small>Exact duplicate of index.html - candidate for removal.</small>
+    </div>
+    
+    <div class="interface-card">
+        <h3>index_unified.html</h3>
+        <p><span class="status working">FIXED</span> Advanced interface with Rust WASM + FFmpeg.js</p>
+        <a href="/index_unified.html" class="test-link" target="_blank">Test Interface</a>
+        <small>Most sophisticated interface with WASM time parsing and dual engine support.</small>
+    </div>
+    
+    <div class="interface-card">
+        <h3>index_working.html</h3>
+        <p><span class="status working">WORKING</span> Reference implementation</p>
+        <a href="/index_working.html" class="test-link" target="_blank">Test Interface</a>
+        <small>Clean reference implementation with comprehensive error handling.</small>
+    </div>
+    
+    <div class="interface-card">
+        <h3>index_simple_fixed.html</h3>
+        <p><span class="status working">GUARANTEED</span> Simple, reliable interface</p>
+        <a href="/index_simple_fixed.html" class="test-link" target="_blank">Test Interface</a>
+        <small>Minimal, guaranteed working interface with proper FFmpeg loading.</small>
+    </div>
+    
+    <div class="interface-card">
+        <h3>test.html</h3>
+        <p><span class="status unknown">UNKNOWN</span> Basic test page</p>
+        <a href="/test.html" class="test-link" target="_blank">Test Interface</a>
+        <small>Basic test interface - unknown status.</small>
+    </div>
+
+    <h2>📝 Test Instructions</h2>
+    <ol>
+        <li>Click each "Test Interface" link to open in a new tab</li>
+        <li>Try uploading a video file (drag & drop or click to select)</li>
+        <li>Check browser console for any errors</li>
+        <li>Verify time input parsing works</li>
+        <li>Test video clipping functionality</li>
+    </ol>
+
+    <h2>🎯 Expected Results</h2>
+    <ul>
+        <li><strong>index.html & index_simple.html</strong>: Basic upload and clipping should work</li>
+        <li><strong>index_unified.html</strong>: Should show WASM status indicators and advanced features</li>
+        <li><strong>index_working.html</strong>: Clean interface with good error handling</li>
+    </ul>
+</body>
+</html>
