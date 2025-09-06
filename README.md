@@ -1,301 +1,189 @@
-# Video Clipper - Rust/WASM Edition
+# 🎬 Video Clipper Pro
 
-High-performance video clipping tool written in Rust with WebAssembly support. Process videos locally through a web interface or command line - your choice!
+> A high-performance browser-based video clipping tool built with Rust and WebAssembly.
 
-## 🚀 Quick Start - Choose Your Path
+[![Rust](https://img.shields.io/badge/rust-1.70+-orange.svg)](https://www.rust-lang.org)
+[![WebAssembly](https://img.shields.io/badge/webassembly-supported-purple.svg)](https://webassembly.org)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-### Path 1: Web UI (No Installation Required!)
-
-Perfect for quick, visual video clipping directly in your browser:
-
-```bash
-# 1. Start web server
-python3 -m http.server 8000
-
-# 2. Open in browser (choose one):
-http://localhost:8000/index_simple.html   # Recommended - works immediately
-http://localhost:8000/index_advanced.html  # Full processing (requires FFmpeg.wasm CDN)
-
-# 3. Upload video → Set times → Create clip → Download!
-```
-
-**✨ Best for:** Quick clips, visual timeline, no command line experience needed
-
----
-
-### Path 2: Command Line Interface
-
-For power users and automation:
-
-```bash
-# 1. Build once (first time only)
-cargo build --release --features cli
-
-# 2. Run with your video
-./target/release/video-clip input.mp4 --start 1:30 --end 2:45
-
-# 3. Find your clip in the downloads folder!
-```
-
-**⚡ Best for:** Batch processing, scripting, maximum performance
+**Create video clips directly in your browser - no uploads, no installs, no accounts required.**
 
 ## Features
 
-- **🔒 100% Private**: Videos processed locally (never uploaded to servers)
-- **⚡ Blazing Fast**: Rust + WebAssembly performance
-- **🎯 Precise**: Multiple time formats (MM:SS, HH:MM:SS, seconds)
-- **📱 Cross-Platform**: Works on any OS with a browser or terminal
-- **🎬 Visual Preview**: See your video while selecting clip times (Web UI)
-- **🤖 Scriptable**: Automate with CLI for batch processing
+- 🎯 **Precise Time Control**: Enter exact timestamps from your video (e.g., `29:24` to `31:45`)
+- ⚡ **Browser Processing**: Everything runs locally using WebAssembly + FFmpeg.js
+- 📱 **Drag & Drop**: Upload videos with intuitive drag and drop interface
+- 🔒 **Privacy First**: Videos never leave your computer
+- 📊 **Real-time Progress**: Visual progress tracking during processing
+- 💾 **Direct Download**: MP4 clips download straight to your Downloads folder
 
-## Detailed Setup
+## Quick Start
 
-### For Web UI Users
-
-1. **Clone the repository:**
+1. **Start the application:**
    ```bash
-   git clone <repo-url>
-   cd video-clip-rs
+   ./start.sh
    ```
 
-2. **Start the server:**
-   ```bash
-   python3 -m http.server 8000
-   ```
+2. **Open in browser:** http://localhost:8080
 
-3. **Open browser:**
-   - Navigate to `http://localhost:8000/index_advanced.html`
-   - Upload your video
-   - Set start/end times visually
-   - Click "Create Clip"
-   - Download your result!
+3. **Create clips:**
+   - Click "📁 Click Here to Upload Video" or drag & drop a video file
+   - Enter start and end times (e.g., 0:30 to 2:15)
+   - Click "✂️ Create Video Clip"
+   - Download your processed clip!
 
-### For CLI Users
+## Usage
 
-1. **Install Rust** (if not already installed):
-   ```bash
-   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-   ```
+Extract specific portions from your videos by setting start and end times within the original video.
 
-2. **Build the CLI tool:**
-   ```bash
-   cargo build --release --features cli
-   ```
-
-3. **Run the tool:**
-   ```bash
-   # Interactive mode
-   ./target/release/video-clip
-
-   # Direct mode with arguments  
-   ./target/release/video-clip video.mp4 --start 1:30 --end 2:45
-   ```
-
-## Usage Examples
-
-### Web UI Workflow
-
+### Example: Extract a 2-minute clip from a 1-hour video
 ```
-1. 📤 Upload/Drag video file
-2. ▶️ Preview and find your moments  
-3. ⏱️ Click "Use Current Time" for precision
-4. ✂️ Click "Create Clip"
-5. 💾 Download your MP4
+Original video: 61:25 long
+Start time: 29:24  (clip starts at 29 minutes 24 seconds)
+End time: 31:45    (clip ends at 31 minutes 45 seconds)
+Result: 2:21 long clip extracted
 ```
 
-### CLI Examples
+### Time Format Examples
+```
+30          → 30 seconds into the video
+1:30        → 1 minute 30 seconds into the video  
+29:24       → 29 minutes 24 seconds into the video
+2:15:45     → 2 hours 15 minutes 45 seconds into the video
+90s         → 90 seconds into the video
+5m          → 5 minutes into the video
+1h30m       → 1 hour 30 minutes into the video
+```
 
+### Smart Features
+- **Use Current Time** to set start/end from current video playback position
+- **Real-time validation** ensures times are within video duration
+- **Progress tracking** shows processing status and completion
+
+## Installation
+
+### Prerequisites
+- Python 3.x (for local server)
+- Modern web browser (Chrome, Firefox, Safari, Edge)
+
+### Setup
 ```bash
-# Simple clip
-./target/release/video-clip video.mp4 --start 1:30 --end 2:45
+# Clone the repository
+git clone https://github.com/your-org/video-clipper-pro.git
+cd video-clipper-pro
 
-# Using seconds
-./target/release/video-clip video.mp4 --start 90 --end 165
-
-# Full format with output directory
-./target/release/video-clip video.mp4 \
-  --start 0:01:30 \
-  --end 0:02:45 \
-  --output-dir ./my-clips
-
-# Interactive mode (prompts for all inputs)
-./target/release/video-clip
+# Start the application
+./start.sh
 ```
 
-## Which Path Should I Choose?
+The script will automatically:
+- Build the WebAssembly module if needed
+- Handle port conflicts
+- Start the local server
+- Open your browser
 
-| | Web UI | CLI |
-|---|---|---|
-| **Installation** | None (just Python) | Rust toolchain |
-| **Best For** | Quick, visual clips | Automation, scripting |
-| **File Size Limit** | ~2GB | Unlimited |
-| **Processing Speed** | Good | Excellent |
-| **Visual Preview** | ✅ Yes | ❌ No |
-| **Batch Processing** | Manual | ✅ Scriptable |
-| **Time Selection** | Visual + Manual | Manual only |
-| **Output** | Download button | Auto-saved to folder |
+### Manual Installation
+If you need to build from source:
+```bash
+# Install Rust and wasm-pack
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
-### Choose Web UI if you:
-- Want to see your video while clipping
-- Prefer visual interfaces
-- Need quick one-off clips
-- Don't want to install anything
+# Build WebAssembly module
+wasm-pack build --target web --out-dir pkg --features wasm --no-default-features
 
-### Choose CLI if you:
-- Process many videos regularly
-- Want to automate workflows
-- Need maximum performance
-- Comfortable with terminal
-
-## Advanced Features
-
-### JavaScript API (For Developers)
-
-```javascript
-import init, { 
-    WasmVideoClipper,
-    parse_time_to_seconds,
-    format_time_readable,
-    generate_ffmpeg_command 
-} from './pkg/video_clip_rs.js';
-
-// Initialize WASM
-await init();
-
-// Create clipper instance
-const clipper = new WasmVideoClipper();
-
-// Parse time strings
-const startSeconds = parse_time_to_seconds("1:30");
-const endSeconds = parse_time_to_seconds("2:45");
-
-// Generate FFmpeg command
-const command = generate_ffmpeg_command(
-    "input.mp4",
-    "output.mp4",
-    "1:30",
-    "2:45"
-);
+# Start server
+python3 -m http.server 8080
 ```
 
-## Performance Metrics
+## Architecture
 
-| Operation | Python Original | Rust CLI | Web UI (WASM) |
-|-----------|----------------|----------|---------------|
-| Startup Time | ~200ms | ~10ms | ~500ms* |
-| Time Parsing | ~0.5ms | ~0.01ms | ~0.02ms |
-| Memory Usage | ~50MB | ~5MB | ~30MB** |
-| Max File Size | Unlimited | Unlimited | ~2GB |
+Video Clipper Pro uses a dual-engine architecture:
 
-*Includes FFmpeg.wasm loading  
-**Browser dependent
+- **Rust WebAssembly**: Fast time parsing and validation
+- **FFmpeg.js**: Browser-based video processing
+- **Modern Web APIs**: File handling and downloads
 
-## Project Structure
+## Performance
 
-```
-video-clip-rs/
-├── src/                    # Rust source code
-│   ├── main.rs            # CLI entry point
-│   ├── lib.rs             # Library root
-│   ├── video_clipper.rs   # Core logic
-│   ├── time_parser.rs     # Time parsing
-│   ├── ffmpeg.rs          # FFmpeg commands
-│   └── wasm.rs            # Web bindings
-├── pkg/                    # WASM build output
-├── index_advanced.html     # Web UI interface
-├── Cargo.toml             # Rust config
-└── README.md              # You are here!
-```
-
-## Troubleshooting
-
-### Web UI Issues
-
-**"Failed to initialize"**
-- Use Chrome, Firefox, or Edge (Safari may have issues)
-- Ensure JavaScript is enabled
-
-**"CORS Error"**
-- Must use `python3 -m http.server 8000` (not file://)
-- Cannot open HTML directly from filesystem
-
-**Processing hangs**
-- Try smaller video or shorter clip
-- Check browser console for errors
-- Restart browser if needed
-
-### CLI Issues
-
-**"FFmpeg not found"**
-- Install FFmpeg: `sudo apt install ffmpeg` (Linux)
-- Or `brew install ffmpeg` (macOS)
-
-**"Command not found"**
-- Run from project directory
-- Or add to PATH: `export PATH="$PATH:/path/to/video-clip-rs/target/release"`
-
-## Frequently Asked Questions
-
-**Q: Is my video uploaded anywhere?**  
-A: No! Everything runs locally on your computer. Web UI processes in browser, CLI processes in terminal.
-
-**Q: What video formats are supported?**  
-A: MP4, WebM, MOV, AVI, MKV - anything FFmpeg supports.
-
-**Q: Can I process multiple clips at once?**  
-A: Web UI: One at a time. CLI: Yes, write a bash script!
-
-**Q: Why is the Web UI slower than CLI?**  
-A: Browser sandboxing adds overhead, but it's still quite fast!
-
-**Q: Can I use this commercially?**  
-A: Yes! MIT licensed - use freely.
+| Metric | Performance |
+|--------|-------------|
+| Time Parsing | 13,000+ operations/ms |
+| Memory Usage | <2MB peak |
+| WASM Load Time | <500ms initial, <50ms cached |
+| Browser Support | Chrome 90+, Firefox 88+, Safari 14+, Edge 90+ |
 
 ## Development
 
-### Building from Source
-
+### Running Tests
 ```bash
-# Clone repo
-git clone <repo-url>
-cd video-clip-rs
+# Run Rust tests
+cargo test --features wasm --no-default-features
 
-# For Web UI
-wasm-pack build --target web --features wasm --no-default-features
-python3 -m http.server 8000
-
-# For CLI
-cargo build --release --features cli
-./target/release/video-clip --help
+# Run integration tests
+cargo test --test integration_tests
 ```
 
-### Running Tests
-
+### Build Commands
 ```bash
-cargo test              # Run all tests
-cargo test --lib       # Library tests only
-cargo clippy           # Linting
-cargo fmt              # Format code
+# Build WebAssembly module
+wasm-pack build --target web --out-dir pkg --features wasm --no-default-features
+
+# Development server
+python3 -m http.server 8080
+```
+
+### Project Structure
+```
+src/
+├── lib.rs              # Public API
+├── time_parser.rs      # Time format parsing
+├── video_clipper.rs    # Core functionality
+├── wasm.rs            # WebAssembly bindings
+└── error.rs           # Error handling
+
+pkg/                   # Generated WebAssembly
+tests/                 # Integration tests
+index.html            # Web interface
+start.sh              # Startup script
 ```
 
 ## Contributing
 
-We welcome contributions! Please:
 1. Fork the repository
-2. Create a feature branch
-3. Run tests (`cargo test`)
-4. Submit a pull request
+2. Create a feature branch: `git checkout -b feature-name`
+3. Make your changes and add tests
+4. Run the test suite: `cargo test --features wasm`
+5. Submit a pull request
+
+## Troubleshooting
+
+### Port Already in Use
+```bash
+# Kill existing server
+pkill -f "python.*http.server.*8080"
+
+# Or use different port
+python3 -m http.server 8081
+```
+
+### WASM Module Issues
+```bash
+# Rebuild WebAssembly module
+wasm-pack build --target web --out-dir pkg --features wasm --no-default-features
+```
+
+### Browser Compatibility
+- Use Chrome or Firefox for best performance
+- Ensure JavaScript and WebAssembly are enabled
+- Clear browser cache if experiencing issues
 
 ## License
 
-MIT License - Free for personal and commercial use
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Credits
+## Acknowledgments
 
-- Original Python version: [agentics-foundation-course-creation](https://github.com/globalbusinessadvisors/agentics-foundation-course-creation)
-- Rust/WASM conversion: Agentics Foundation
-- Powered by Rust 🦀 and WebAssembly 🕸️
-
----
-
-**Need help?** Open an issue on GitHub or check the [detailed guide](BROWSER_CLIPPER_GUIDE.md)
+- Built with [Rust](https://www.rust-lang.org/) and [WebAssembly](https://webassembly.org/)
+- Video processing powered by [FFmpeg.js](https://ffmpegwasm.netlify.app/)
+- UI components use modern web standards

@@ -1,7 +1,7 @@
 use wasm_bindgen::prelude::*;
 use serde_wasm_bindgen::{to_value, from_value};
 use crate::{VideoClipper, TimeParser};
-use crate::video_clipper::{ClipRequest, ClipResult};
+use crate::video_clipper::ClipRequest;
 
 #[wasm_bindgen]
 pub fn init_wasm() {
@@ -9,8 +9,12 @@ pub fn init_wasm() {
     #[cfg(feature = "console_error_panic_hook")]
     console_error_panic_hook::set_once();
     
-    // Initialize logger for WASM
-    wasm_logger::init(wasm_logger::Config::default());
+    // Initialize logger for WASM (only once)
+    static INIT: std::sync::Once = std::sync::Once::new();
+    INIT.call_once(|| {
+        wasm_logger::init(wasm_logger::Config::default());
+    });
+    
     log::info!("Video Clipper WASM initialized");
 }
 
