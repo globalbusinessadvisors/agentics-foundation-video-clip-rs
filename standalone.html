@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Video Clipper - Standalone</title>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        
+        /* UPLOAD BUTTON - SUPER VISIBLE */
+        .upload-button {
+            display: block;
+            width: 100%;
+            padding: 50px;
+            margin: 20px 0;
+            background: #4CAF50;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .upload-button:hover {
+            background: #45a049;
+        }
+        
+        #file-input {
+            display: none;
+        }
+        
+        .video-container {
+            margin: 20px 0;
+            display: none;
+        }
+        
+        video {
+            width: 100%;
+            max-width: 100%;
+            border-radius: 5px;
+        }
+        
+        .controls {
+            display: none;
+            margin: 20px 0;
+        }
+        
+        .time-input {
+            margin: 10px 0;
+        }
+        
+        .time-input label {
+            display: inline-block;
+            width: 100px;
+            font-weight: bold;
+        }
+        
+        .time-input input {
+            padding: 8px;
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            width: 200px;
+        }
+        
+        .generate-btn {
+            background: #2196F3;
+            color: white;
+            padding: 12px 30px;
+            font-size: 18px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 20px 0;
+        }
+        
+        .generate-btn:hover {
+            background: #0b7dda;
+        }
+        
+        .output {
+            display: none;
+            margin: 20px 0;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 5px;
+        }
+        
+        .command {
+            background: #000;
+            color: #0f0;
+            padding: 15px;
+            font-family: monospace;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+        
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            display: none;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            display: block;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 Video Clipper - Standalone Version</h1>
+        
+        <!-- BIG GREEN UPLOAD BUTTON -->
+        <button class="upload-button" onclick="document.getElementById('file-input').click()">
+            📁 CLICK HERE TO UPLOAD VIDEO
+        </button>
+        <input type="file" id="file-input" accept="video/*" onchange="handleFile(this.files[0])">
+        
+        <div id="status" class="status"></div>
+        
+        <div class="video-container" id="video-container">
+            <h3>Video Preview:</h3>
+            <video id="video" controls></video>
+        </div>
+        
+        <div class="controls" id="controls">
+            <h3>Set Clip Times:</h3>
+            <div class="time-input">
+                <label>Start Time:</label>
+                <input type="text" id="start-time" placeholder="0:00 or 0" value="0:00">
+            </div>
+            <div class="time-input">
+                <label>End Time:</label>
+                <input type="text" id="end-time" placeholder="1:30 or 90">
+            </div>
+            <button class="generate-btn" onclick="generateCommand()">
+                ✂️ Generate FFmpeg Command
+            </button>
+        </div>
+        
+        <div class="output" id="output">
+            <h3>FFmpeg Command:</h3>
+            <div class="command" id="command"></div>
+            <p>Copy this command and run it in your terminal where FFmpeg is installed.</p>
+        </div>
+    </div>
+    
+    <script>
+        let videoFile = null;
+        
+        function handleFile(file) {
+            if (!file) return;
+            
+            if (!file.type.startsWith('video/')) {
+                showStatus('Please select a video file!', 'error');
+                return;
+            }
+            
+            videoFile = file;
+            const video = document.getElementById('video');
+            video.src = URL.createObjectURL(file);
+            
+            video.onloadedmetadata = function() {
+                document.getElementById('video-container').style.display = 'block';
+                document.getElementById('controls').style.display = 'block';
+                
+                // Set default end time to video duration
+                const duration = video.duration;
+                const minutes = Math.floor(duration / 60);
+                const seconds = Math.floor(duration % 60);
+                document.getElementById('end-time').value = minutes + ':' + seconds.toString().padStart(2, '0');
+                
+                showStatus('Video loaded successfully! File: ' + file.name + ' | Size: ' + (file.size / 1048576).toFixed(2) + ' MB', 'success');
+            };
+        }
+        
+        function generateCommand() {
+            if (!videoFile) {
+                showStatus('Please upload a video first!', 'error');
+                return;
+            }
+            
+            const startTime = document.getElementById('start-time').value;
+            const endTime = document.getElementById('end-time').value;
+            
+            // Parse times to seconds
+            const startSeconds = parseTime(startTime);
+            const endSeconds = parseTime(endTime);
+            
+            if (endSeconds <= startSeconds) {
+                showStatus('End time must be after start time!', 'error');
+                return;
+            }
+            
+            const duration = endSeconds - startSeconds;
+            const outputName = videoFile.name.replace(/\.[^/.]+$/, '') + '_clip.mp4';
+            
+            const command = 'ffmpeg -i "' + videoFile.name + '" -ss ' + startSeconds + ' -t ' + duration + ' -c copy "' + outputName + '"';
+            
+            document.getElementById('command').textContent = command;
+            document.getElementById('output').style.display = 'block';
+            
+            showStatus('Command generated! Duration: ' + duration + ' seconds', 'success');
+        }
+        
+        function parseTime(timeStr) {
+            if (!timeStr) return 0;
+            
+            if (timeStr.includes(':')) {
+                const parts = timeStr.split(':');
+                if (parts.length === 2) {
+                    return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+                } else if (parts.length === 3) {
+                    return parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseInt(parts[2]);
+                }
+            }
+            
+            return parseFloat(timeStr) || 0;
+        }
+        
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = 'status ' + type;
+        }
+    </script>
+</body>
+</html>
