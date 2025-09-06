@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Clipper - WASM Demo</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .emoji {
+            font-size: 1.5em;
+            margin-right: 10px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 600;
+        }
+        input[type="text"], input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            margin-right: 10px;
+        }
+        button:hover {
+            transform: translateY(-2px);
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .output {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f7f7f7;
+            border-radius: 5px;
+            border-left: 4px solid #667eea;
+        }
+        .output h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .command {
+            background: #2d3748;
+            color: #48bb78;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+            margin-top: 10px;
+        }
+        .info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .info-item {
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #e2e8f0;
+        }
+        .info-label {
+            font-size: 12px;
+            color: #718096;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .info-value {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2d3748;
+            margin-top: 5px;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .error {
+            background: #fed7d7;
+            color: #9b2c2c;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            border-left: 4px solid #fc8181;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1><span class="emoji">🎬</span>Video Clipper WASM</h1>
+        
+        <div class="form-group">
+            <label for="inputFile">Video File Path:</label>
+            <input type="text" id="inputFile" placeholder="e.g., video.mp4" value="sample.mp4">
+        </div>
+        
+        <div class="form-group">
+            <label for="startTime">Start Time (MM:SS or seconds):</label>
+            <input type="text" id="startTime" placeholder="e.g., 1:30 or 90" value="0:30">
+        </div>
+        
+        <div class="form-group">
+            <label for="endTime">End Time (MM:SS or seconds):</label>
+            <input type="text" id="endTime" placeholder="e.g., 2:45 or 165" value="1:30">
+        </div>
+        
+        <button onclick="generateCommand()">Generate FFmpeg Command</button>
+        <button onclick="parseTime()">Test Time Parser</button>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Loading WASM module...</p>
+        </div>
+        
+        <div id="output"></div>
+    </div>
+    
+    <script type="module">
+        import init, {
+            WasmVideoClipper,
+            parse_time_to_seconds,
+            format_time_readable,
+            generate_ffmpeg_command,
+            prepare_clip
+        } from './pkg/video_clip_rs.js';
+        
+        let wasmModule = null;
+        
+        async function loadWasm() {
+            document.getElementById('loading').style.display = 'block';
+            try {
+                await init();
+                wasmModule = new WasmVideoClipper();
+                console.log('WASM module loaded successfully');
+                document.getElementById('loading').style.display = 'none';
+            } catch (error) {
+                console.error('Failed to load WASM:', error);
+                document.getElementById('loading').style.display = 'none';
+                showError('Failed to load WASM module: ' + error.message);
+            }
+        }
+        
+        window.generateCommand = async function() {
+            if (!wasmModule) {
+                await loadWasm();
+            }
+            
+            const inputFile = document.getElementById('inputFile').value;
+            const startTime = document.getElementById('startTime').value;
+            const endTime = document.getElementById('endTime').value;
+            
+            try {
+                // Parse times
+                const startSeconds = parse_time_to_seconds(startTime);
+                const endSeconds = parse_time_to_seconds(endTime);
+                const duration = endSeconds - startSeconds;
+                
+                if (duration <= 0) {
+                    throw new Error('End time must be after start time');
+                }
+                
+                // Generate output filename
+                const outputFile = wasmModule.generate_output_filename(inputFile, startTime, endTime);
+                
+                // Generate FFmpeg command
+                const command = generate_ffmpeg_command(inputFile, outputFile, startTime, endTime);
+                
+                // Prepare full clip info
+                const clipResult = prepare_clip({
+                    input_file: inputFile,
+                    start_time: startTime,
+                    end_time: endTime
+                });
+                
+                showResult({
+                    command,
+                    startSeconds,
+                    endSeconds,
+                    duration,
+                    outputFile,
+                    ...clipResult
+                });
+            } catch (error) {
+                showError(error.message || error.toString());
+            }
+        };
+        
+        window.parseTime = async function() {
+            if (!wasmModule) {
+                await loadWasm();
+            }
+            
+            const startTime = document.getElementById('startTime').value;
+            const endTime = document.getElementById('endTime').value;
+            
+            try {
+                const startSeconds = parse_time_to_seconds(startTime);
+                const endSeconds = parse_time_to_seconds(endTime);
+                const startFormatted = format_time_readable(startSeconds);
+                const endFormatted = format_time_readable(endSeconds);
+                
+                showTimeParseResult({
+                    startTime,
+                    startSeconds,
+                    startFormatted,
+                    endTime,
+                    endSeconds,
+                    endFormatted
+                });
+            } catch (error) {
+                showError(error.message || error.toString());
+            }
+        };
+        
+        function showResult(result) {
+            const output = document.getElementById('output');
+            output.innerHTML = `
+                <div class="output">
+                    <h3><span class="emoji">✂️</span>Clip Information</h3>
+                    
+                    <div class="info">
+                        <div class="info-item">
+                            <div class="info-label">Start Time</div>
+                            <div class="info-value">${format_time_readable(result.startSeconds)}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">End Time</div>
+                            <div class="info-value">${format_time_readable(result.endSeconds)}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Duration</div>
+                            <div class="info-value">${result.duration.toFixed(1)}s</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Output File</div>
+                            <div class="info-value" style="font-size: 14px;">${result.output_file}</div>
+                        </div>
+                    </div>
+                    
+                    <h4>FFmpeg Command:</h4>
+                    <div class="command">${result.command}</div>
+                    
+                    <p style="margin-top: 20px; color: #718096;">
+                        <strong>Note:</strong> Copy this command and run it in your terminal where FFmpeg is installed.
+                    </p>
+                </div>
+            `;
+        }
+        
+        function showTimeParseResult(result) {
+            const output = document.getElementById('output');
+            output.innerHTML = `
+                <div class="output">
+                    <h3><span class="emoji">⏱️</span>Time Parsing Results</h3>
+                    
+                    <div class="info">
+                        <div class="info-item">
+                            <div class="info-label">Start Input</div>
+                            <div class="info-value">${result.startTime}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Start Seconds</div>
+                            <div class="info-value">${result.startSeconds}s</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Start Formatted</div>
+                            <div class="info-value">${result.startFormatted}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="info" style="margin-top: 10px;">
+                        <div class="info-item">
+                            <div class="info-label">End Input</div>
+                            <div class="info-value">${result.endTime}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">End Seconds</div>
+                            <div class="info-value">${result.endSeconds}s</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">End Formatted</div>
+                            <div class="info-value">${result.endFormatted}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function showError(message) {
+            const output = document.getElementById('output');
+            output.innerHTML = `
+                <div class="error">
+                    <strong>Error:</strong> ${message}
+                </div>
+            `;
+        }
+        
+        // Load WASM on page load
+        loadWasm();
+    </script>
+</body>
+</html>

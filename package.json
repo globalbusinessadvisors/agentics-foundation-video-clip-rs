@@ -1,0 +1,36 @@
+{
+  "name": "video-clip-rs",
+  "version": "1.0.0",
+  "description": "High-performance video clipping tool with WebAssembly support",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "serve": "python3 -m http.server 8000",
+    "build:wasm": "wasm-pack build --target web --features wasm --no-default-features",
+    "build:cli": "cargo build --release --features cli",
+    "test": "cargo test",
+    "install:ffmpeg-wasm": "npm install @ffmpeg/ffmpeg @ffmpeg/core @ffmpeg/util"
+  },
+  "keywords": [
+    "video-processing",
+    "webassembly",
+    "rust",
+    "wasm",
+    "ffmpeg",
+    "video-clipper"
+  ],
+  "author": "Agentics Foundation",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/globalbusinessadvisors/agentics-foundation-video-clip-rs.git"
+  },
+  "dependencies": {
+    "@ffmpeg/ffmpeg": "^0.12.10",
+    "@ffmpeg/core": "^0.12.6",
+    "@ffmpeg/util": "^0.12.1"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  }
+}
