@@ -290,8 +290,13 @@
                 
                 // Set up MediaRecorder
                 const canvasStream = canvas.captureStream(30); // 30 FPS
+                // Try MP4 first, fallback to WebM if not supported
+                let mimeType = 'video/mp4';
+                if (!MediaRecorder.isTypeSupported(mimeType)) {
+                    mimeType = 'video/webm;codecs=vp8';
+                }
                 const recorder = new MediaRecorder(canvasStream, {
-                    mimeType: 'video/webm;codecs=vp8'
+                    mimeType: mimeType
                 });
                 
                 const chunks = [];
@@ -349,7 +354,8 @@
                 // Wait for recording to finish
                 const blob = await new Promise((resolve) => {
                     recorder.onstop = () => {
-                        const videoBlob = new Blob(chunks, { type: 'video/webm' });
+                        // Use the same mimeType that was used for recording
+                        const videoBlob = new Blob(chunks, { type: mimeType });
                         resolve(videoBlob);
                     };
                 });
@@ -359,7 +365,9 @@
                 
                 // Create download
                 const downloadUrl = URL.createObjectURL(blob);
-                const outputName = currentVideo.name.replace(/\.[^/.]+$/, '') + '_clip.webm';
+                // Use MP4 extension when possible, WebM as fallback
+                const extension = mimeType.includes('mp4') ? '.mp4' : '.webm';
+                const outputName = currentVideo.name.replace(/\.[^/.]+$/, '') + '_clip' + extension;
                 debugLog('Creating download with filename: ' + outputName);
                 
                 // Create download element and trigger immediately
