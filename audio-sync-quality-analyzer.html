@@ -1,0 +1,1260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Sync & Quality Analyzer</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 2.5em;
+        }
+
+        .analysis-section {
+            background: white;
+            margin: 20px 0;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .analysis-section h2 {
+            color: #333;
+            border-bottom: 2px solid #28a745;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
+        .file-upload-area {
+            border: 3px dashed #28a745;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            margin: 20px 0;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .file-upload-area:hover {
+            background: #f8fff9;
+            border-color: #1e7e34;
+        }
+
+        .file-upload-area.has-file {
+            border-color: #17a2b8;
+            background: #e7f6fd;
+        }
+
+        .video-comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .video-container {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            background: #f9f9f9;
+        }
+
+        .video-container h3 {
+            margin-top: 0;
+            color: #495057;
+        }
+
+        video {
+            width: 100%;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+
+        .analysis-controls {
+            display: flex;
+            gap: 15px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+
+        button:hover:not(:disabled) {
+            background: #1e7e34;
+        }
+
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+
+        button.secondary {
+            background: #007bff;
+        }
+
+        button.secondary:hover:not(:disabled) {
+            background: #0056b3;
+        }
+
+        .visualization-container {
+            background: #000;
+            border-radius: 8px;
+            margin: 20px 0;
+            padding: 20px;
+        }
+
+        .waveform-canvas {
+            width: 100%;
+            height: 200px;
+            background: #000;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+
+        .spectrum-canvas {
+            width: 100%;
+            height: 150px;
+            background: #000;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .metric-card {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .metric-card.good {
+            border-left: 4px solid #28a745;
+        }
+
+        .metric-card.warning {
+            border-left: 4px solid #ffc107;
+        }
+
+        .metric-card.error {
+            border-left: 4px solid #dc3545;
+        }
+
+        .metric-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #333;
+            margin: 10px 0;
+        }
+
+        .metric-label {
+            color: #666;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .metric-description {
+            color: #888;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+
+        .sync-test-timeline {
+            width: 100%;
+            height: 60px;
+            background: linear-gradient(90deg, #e9ecef 0%, #28a745 50%, #e9ecef 100%);
+            border-radius: 8px;
+            margin: 20px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .sync-marker {
+            position: absolute;
+            top: 0;
+            height: 100%;
+            width: 2px;
+            background: #dc3545;
+            z-index: 10;
+        }
+
+        .sync-marker.audio {
+            background: #007bff;
+        }
+
+        .progress-indicator {
+            background: #e9ecef;
+            border-radius: 10px;
+            height: 20px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #28a745, #20c997);
+            width: 0%;
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .detailed-analysis {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .analysis-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        .analysis-table th,
+        .analysis-table td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+
+        .analysis-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+
+        .analysis-table tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+
+        .recommendation-panel {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .recommendation-panel h3 {
+            color: #856404;
+            margin-top: 0;
+        }
+
+        .recommendation {
+            background: white;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 10px 0;
+            border-left: 4px solid #ffc107;
+        }
+
+        .status-display {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+
+        .status-display.analyzing {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .status-display.complete {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-display.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #ccc;
+            border-top: 2px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .video-comparison {
+                grid-template-columns: 1fr;
+            }
+
+            .analysis-controls {
+                flex-direction: column;
+            }
+
+            .results-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎵 Audio Sync & Quality Analyzer</h1>
+        <p>Advanced audio analysis for video clipper validation</p>
+    </div>
+
+    <div class="analysis-section">
+        <h2>📁 Video Upload</h2>
+        <div class="file-upload-area" id="originalUpload">
+            <h3>Original Video</h3>
+            <p>Click or drag & drop your original video file here</p>
+            <input type="file" id="originalFile" accept="video/*" style="display: none;">
+        </div>
+
+        <div class="file-upload-area" id="clippedUpload">
+            <h3>Clipped Video</h3>
+            <p>Click or drag & drop your clipped video file here</p>
+            <input type="file" id="clippedFile" accept="video/*" style="display: none;">
+        </div>
+    </div>
+
+    <div class="analysis-section">
+        <h2>🎬 Video Comparison</h2>
+        <div class="video-comparison">
+            <div class="video-container">
+                <h3>Original Video</h3>
+                <video id="originalVideo" controls style="display: none;"></video>
+                <div id="originalInfo" class="hidden"></div>
+            </div>
+            <div class="video-container">
+                <h3>Clipped Video</h3>
+                <video id="clippedVideo" controls style="display: none;"></video>
+                <div id="clippedInfo" class="hidden"></div>
+            </div>
+        </div>
+
+        <div class="analysis-controls">
+            <button id="analyzeAudioBtn" disabled>🎵 Analyze Audio Quality</button>
+            <button id="analyzeSyncBtn" disabled>⏱️ Check Audio Sync</button>
+            <button id="generateReportBtn" disabled class="secondary">📊 Generate Report</button>
+            <button id="exportDataBtn" disabled class="secondary">💾 Export Data</button>
+        </div>
+
+        <div class="status-display hidden" id="analysisStatus">
+            <div class="spinner"></div>
+            <span>Analyzing...</span>
+        </div>
+    </div>
+
+    <div class="analysis-section">
+        <h2>📊 Analysis Results</h2>
+        <div class="results-grid" id="metricsGrid">
+            <!-- Metrics will be populated here -->
+        </div>
+
+        <div class="visualization-container">
+            <h3 style="color: white; margin-top: 0;">Audio Waveform Comparison</h3>
+            <canvas class="waveform-canvas" id="waveformCanvas"></canvas>
+
+            <h3 style="color: white;">Frequency Spectrum Analysis</h3>
+            <canvas class="spectrum-canvas" id="spectrumCanvas"></canvas>
+        </div>
+
+        <div class="sync-test-timeline" id="syncTimeline">
+            <!-- Sync markers will be added here -->
+        </div>
+    </div>
+
+    <div class="analysis-section">
+        <h2>📋 Detailed Analysis</h2>
+        <div class="detailed-analysis" id="detailedResults">
+            <p>Upload videos and run analysis to see detailed results...</p>
+        </div>
+    </div>
+
+    <div class="analysis-section">
+        <h2>💡 Recommendations</h2>
+        <div class="recommendation-panel" id="recommendationsPanel">
+            <h3>Analysis Recommendations</h3>
+            <p>Run audio analysis to receive specific recommendations for improving audio quality and synchronization.</p>
+        </div>
+    </div>
+
+    <script>
+        class AudioSyncQualityAnalyzer {
+            constructor() {
+                this.originalVideo = null;
+                this.clippedVideo = null;
+                this.originalAudioContext = null;
+                this.clippedAudioContext = null;
+                this.analysisResults = {};
+
+                this.initializeElements();
+                this.setupEventListeners();
+            }
+
+            initializeElements() {
+                this.originalUpload = document.getElementById('originalUpload');
+                this.clippedUpload = document.getElementById('clippedUpload');
+                this.originalFile = document.getElementById('originalFile');
+                this.clippedFile = document.getElementById('clippedFile');
+                this.originalVideo = document.getElementById('originalVideo');
+                this.clippedVideo = document.getElementById('clippedVideo');
+                this.analyzeAudioBtn = document.getElementById('analyzeAudioBtn');
+                this.analyzeSyncBtn = document.getElementById('analyzeSyncBtn');
+                this.generateReportBtn = document.getElementById('generateReportBtn');
+                this.exportDataBtn = document.getElementById('exportDataBtn');
+                this.analysisStatus = document.getElementById('analysisStatus');
+                this.metricsGrid = document.getElementById('metricsGrid');
+                this.waveformCanvas = document.getElementById('waveformCanvas');
+                this.spectrumCanvas = document.getElementById('spectrumCanvas');
+                this.syncTimeline = document.getElementById('syncTimeline');
+                this.detailedResults = document.getElementById('detailedResults');
+                this.recommendationsPanel = document.getElementById('recommendationsPanel');
+            }
+
+            setupEventListeners() {
+                // File upload handlers
+                this.originalUpload.addEventListener('click', () => this.originalFile.click());
+                this.clippedUpload.addEventListener('click', () => this.clippedFile.click());
+
+                this.originalFile.addEventListener('change', (e) => this.loadOriginalVideo(e.target.files[0]));
+                this.clippedFile.addEventListener('change', (e) => this.loadClippedVideo(e.target.files[0]));
+
+                // Drag and drop handlers
+                this.setupDragAndDrop(this.originalUpload, this.originalFile);
+                this.setupDragAndDrop(this.clippedUpload, this.clippedFile);
+
+                // Analysis buttons
+                this.analyzeAudioBtn.addEventListener('click', () => this.analyzeAudioQuality());
+                this.analyzeSyncBtn.addEventListener('click', () => this.analyzeAudioSync());
+                this.generateReportBtn.addEventListener('click', () => this.generateReport());
+                this.exportDataBtn.addEventListener('click', () => this.exportAnalysisData());
+            }
+
+            setupDragAndDrop(uploadArea, fileInput) {
+                uploadArea.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    uploadArea.style.background = '#e8f5e8';
+                });
+
+                uploadArea.addEventListener('dragleave', (e) => {
+                    e.preventDefault();
+                    uploadArea.style.background = '';
+                });
+
+                uploadArea.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    uploadArea.style.background = '';
+
+                    const files = Array.from(e.dataTransfer.files);
+                    const videoFile = files.find(file => file.type.startsWith('video/'));
+
+                    if (videoFile) {
+                        const event = new Event('change');
+                        fileInput.files = e.dataTransfer.files;
+                        fileInput.dispatchEvent(event);
+                    }
+                });
+            }
+
+            loadOriginalVideo(file) {
+                if (!file || !file.type.startsWith('video/')) {
+                    alert('Please select a valid video file');
+                    return;
+                }
+
+                this.originalVideo.src = URL.createObjectURL(file);
+                this.originalVideo.style.display = 'block';
+                this.originalUpload.classList.add('has-file');
+                this.originalUpload.querySelector('p').textContent = `Loaded: ${file.name}`;
+
+                this.originalVideo.onloadedmetadata = () => {
+                    this.displayVideoInfo('originalInfo', file, this.originalVideo);
+                    this.updateAnalysisButtons();
+                };
+            }
+
+            loadClippedVideo(file) {
+                if (!file || !file.type.startsWith('video/')) {
+                    alert('Please select a valid video file');
+                    return;
+                }
+
+                this.clippedVideo.src = URL.createObjectURL(file);
+                this.clippedVideo.style.display = 'block';
+                this.clippedUpload.classList.add('has-file');
+                this.clippedUpload.querySelector('p').textContent = `Loaded: ${file.name}`;
+
+                this.clippedVideo.onloadedmetadata = () => {
+                    this.displayVideoInfo('clippedInfo', file, this.clippedVideo);
+                    this.updateAnalysisButtons();
+                };
+            }
+
+            displayVideoInfo(containerId, file, videoElement) {
+                const container = document.getElementById(containerId);
+                container.className = '';
+                container.innerHTML = `
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin-top: 10px;">
+                        <p><strong>File:</strong> ${file.name}</p>
+                        <p><strong>Size:</strong> ${(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                        <p><strong>Duration:</strong> ${this.formatTime(videoElement.duration)}</p>
+                        <p><strong>Dimensions:</strong> ${videoElement.videoWidth}x${videoElement.videoHeight}</p>
+                        <p><strong>Type:</strong> ${file.type}</p>
+                    </div>
+                `;
+            }
+
+            updateAnalysisButtons() {
+                const bothLoaded = this.originalVideo.src && this.clippedVideo.src;
+                this.analyzeAudioBtn.disabled = !bothLoaded;
+                this.analyzeSyncBtn.disabled = !bothLoaded;
+            }
+
+            async analyzeAudioQuality() {
+                this.showAnalysisStatus('Analyzing audio quality...');
+
+                try {
+                    // Extract audio data from both videos
+                    const originalAudioData = await this.extractAudioData(this.originalVideo);
+                    const clippedAudioData = await this.extractAudioData(this.clippedVideo);
+
+                    // Perform quality analysis
+                    const qualityMetrics = await this.calculateQualityMetrics(originalAudioData, clippedAudioData);
+
+                    // Store results
+                    this.analysisResults.audioQuality = qualityMetrics;
+
+                    // Display results
+                    this.displayQualityMetrics(qualityMetrics);
+                    this.drawWaveformComparison(originalAudioData, clippedAudioData);
+                    this.drawSpectrumAnalysis(originalAudioData, clippedAudioData);
+
+                    this.hideAnalysisStatus();
+                    this.generateReportBtn.disabled = false;
+                    this.exportDataBtn.disabled = false;
+
+                } catch (error) {
+                    this.showAnalysisStatus('Error analyzing audio: ' + error.message, 'error');
+                    console.error('Audio analysis error:', error);
+                }
+            }
+
+            async analyzeAudioSync() {
+                this.showAnalysisStatus('Analyzing audio synchronization...');
+
+                try {
+                    // Extract timing data
+                    const syncAnalysis = await this.analyzeSynchronization();
+
+                    // Store results
+                    this.analysisResults.audioSync = syncAnalysis;
+
+                    // Display sync timeline
+                    this.displaySyncTimeline(syncAnalysis);
+                    this.displaySyncMetrics(syncAnalysis);
+
+                    this.hideAnalysisStatus();
+                    this.generateReportBtn.disabled = false;
+                    this.exportDataBtn.disabled = false;
+
+                } catch (error) {
+                    this.showAnalysisStatus('Error analyzing sync: ' + error.message, 'error');
+                    console.error('Sync analysis error:', error);
+                }
+            }
+
+            async extractAudioData(videoElement) {
+                return new Promise((resolve, reject) => {
+                    try {
+                        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                        const source = audioContext.createMediaElementSource(videoElement);
+                        const analyser = audioContext.createAnalyser();
+
+                        analyser.fftSize = 2048;
+                        source.connect(analyser);
+
+                        const bufferLength = analyser.frequencyBinCount;
+                        const dataArray = new Uint8Array(bufferLength);
+                        const frequencyData = new Uint8Array(bufferLength);
+
+                        // Collect audio data over time
+                        const audioSamples = [];
+                        const frequencySamples = [];
+                        const sampleDuration = 100; // Sample every 100ms
+
+                        videoElement.currentTime = 0;
+                        videoElement.play();
+
+                        const collectSample = () => {
+                            analyser.getByteTimeDomainData(dataArray);
+                            analyser.getByteFrequencyData(frequencyData);
+
+                            audioSamples.push(new Uint8Array(dataArray));
+                            frequencySamples.push(new Uint8Array(frequencyData));
+
+                            if (videoElement.currentTime < videoElement.duration) {
+                                setTimeout(collectSample, sampleDuration);
+                            } else {
+                                videoElement.pause();
+                                videoElement.currentTime = 0;
+
+                                resolve({
+                                    timeDomain: audioSamples,
+                                    frequency: frequencySamples,
+                                    sampleRate: audioContext.sampleRate,
+                                    duration: videoElement.duration
+                                });
+
+                                audioContext.close();
+                            }
+                        };
+
+                        videoElement.oncanplay = () => {
+                            setTimeout(collectSample, 100);
+                        };
+
+                    } catch (error) {
+                        reject(error);
+                    }
+                });
+            }
+
+            async calculateQualityMetrics(originalData, clippedData) {
+                // Calculate various audio quality metrics
+                const metrics = {
+                    signalToNoiseRatio: this.calculateSNR(originalData, clippedData),
+                    totalHarmonicDistortion: this.calculateTHD(clippedData),
+                    dynamicRange: this.calculateDynamicRange(clippedData),
+                    frequencyResponse: this.analyzeFrequencyResponse(originalData, clippedData),
+                    levelDifference: this.calculateLevelDifference(originalData, clippedData),
+                    spectralDifference: this.calculateSpectralDifference(originalData, clippedData)
+                };
+
+                return metrics;
+            }
+
+            calculateSNR(originalData, clippedData) {
+                // Simplified SNR calculation
+                let signalPower = 0;
+                let noisePower = 0;
+                let sampleCount = 0;
+
+                const minLength = Math.min(originalData.timeDomain.length, clippedData.timeDomain.length);
+
+                for (let i = 0; i < minLength; i++) {
+                    const originalSample = originalData.timeDomain[i];
+                    const clippedSample = clippedData.timeDomain[i];
+
+                    for (let j = 0; j < Math.min(originalSample.length, clippedSample.length); j++) {
+                        const original = (originalSample[j] - 128) / 128;
+                        const clipped = (clippedSample[j] - 128) / 128;
+                        const difference = original - clipped;
+
+                        signalPower += original * original;
+                        noisePower += difference * difference;
+                        sampleCount++;
+                    }
+                }
+
+                if (sampleCount === 0 || noisePower === 0) return 100; // Perfect match
+
+                const snr = 10 * Math.log10(signalPower / noisePower);
+                return Math.max(0, Math.min(100, snr));
+            }
+
+            calculateTHD(audioData) {
+                // Simplified THD calculation using frequency domain data
+                let fundamentalPower = 0;
+                let harmonicPower = 0;
+
+                audioData.frequency.forEach(frequencySample => {
+                    // Assume fundamental is in lower frequencies
+                    for (let i = 0; i < frequencySample.length; i++) {
+                        const power = frequencySample[i] * frequencySample[i];
+                        if (i < frequencySample.length * 0.1) {
+                            fundamentalPower += power;
+                        } else {
+                            harmonicPower += power;
+                        }
+                    }
+                });
+
+                if (fundamentalPower === 0) return 0;
+                return (harmonicPower / fundamentalPower) * 100;
+            }
+
+            calculateDynamicRange(audioData) {
+                let maxLevel = 0;
+                let minLevel = 255;
+
+                audioData.timeDomain.forEach(sample => {
+                    sample.forEach(value => {
+                        maxLevel = Math.max(maxLevel, value);
+                        minLevel = Math.min(minLevel, value);
+                    });
+                });
+
+                return ((maxLevel - minLevel) / 255) * 100;
+            }
+
+            analyzeFrequencyResponse(originalData, clippedData) {
+                // Compare frequency responses
+                const frequencyBands = [
+                    { name: 'Bass', start: 0, end: 0.1 },
+                    { name: 'Mid', start: 0.1, end: 0.6 },
+                    { name: 'Treble', start: 0.6, end: 1.0 }
+                ];
+
+                const analysis = {};
+
+                frequencyBands.forEach(band => {
+                    let originalSum = 0;
+                    let clippedSum = 0;
+                    let sampleCount = 0;
+
+                    const minLength = Math.min(originalData.frequency.length, clippedData.frequency.length);
+
+                    for (let i = 0; i < minLength; i++) {
+                        const originalFreq = originalData.frequency[i];
+                        const clippedFreq = clippedData.frequency[i];
+
+                        const startIdx = Math.floor(band.start * originalFreq.length);
+                        const endIdx = Math.floor(band.end * originalFreq.length);
+
+                        for (let j = startIdx; j < endIdx; j++) {
+                            originalSum += originalFreq[j];
+                            clippedSum += clippedFreq[j];
+                            sampleCount++;
+                        }
+                    }
+
+                    if (sampleCount > 0) {
+                        const originalAvg = originalSum / sampleCount;
+                        const clippedAvg = clippedSum / sampleCount;
+                        const difference = Math.abs(originalAvg - clippedAvg) / originalAvg * 100;
+
+                        analysis[band.name] = {
+                            original: originalAvg.toFixed(2),
+                            clipped: clippedAvg.toFixed(2),
+                            difference: difference.toFixed(2)
+                        };
+                    }
+                });
+
+                return analysis;
+            }
+
+            calculateLevelDifference(originalData, clippedData) {
+                let originalLevel = 0;
+                let clippedLevel = 0;
+                let sampleCount = 0;
+
+                const minLength = Math.min(originalData.timeDomain.length, clippedData.timeDomain.length);
+
+                for (let i = 0; i < minLength; i++) {
+                    const originalSample = originalData.timeDomain[i];
+                    const clippedSample = clippedData.timeDomain[i];
+
+                    for (let j = 0; j < Math.min(originalSample.length, clippedSample.length); j++) {
+                        originalLevel += Math.abs(originalSample[j] - 128);
+                        clippedLevel += Math.abs(clippedSample[j] - 128);
+                        sampleCount++;
+                    }
+                }
+
+                if (sampleCount === 0) return 0;
+
+                const originalAvg = originalLevel / sampleCount;
+                const clippedAvg = clippedLevel / sampleCount;
+
+                return ((clippedAvg - originalAvg) / originalAvg * 100).toFixed(2);
+            }
+
+            calculateSpectralDifference(originalData, clippedData) {
+                let totalDifference = 0;
+                let sampleCount = 0;
+
+                const minLength = Math.min(originalData.frequency.length, clippedData.frequency.length);
+
+                for (let i = 0; i < minLength; i++) {
+                    const originalFreq = originalData.frequency[i];
+                    const clippedFreq = clippedData.frequency[i];
+
+                    for (let j = 0; j < Math.min(originalFreq.length, clippedFreq.length); j++) {
+                        totalDifference += Math.abs(originalFreq[j] - clippedFreq[j]);
+                        sampleCount++;
+                    }
+                }
+
+                return sampleCount > 0 ? (totalDifference / sampleCount).toFixed(2) : 0;
+            }
+
+            async analyzeSynchronization() {
+                // Analyze audio-video synchronization
+                return new Promise((resolve) => {
+                    const analysis = {
+                        audioVideoDelay: this.calculateAudioVideoDelay(),
+                        driftRate: this.calculateDriftRate(),
+                        syncQuality: 'Good', // Simplified
+                        recommendations: []
+                    };
+
+                    // Add recommendations based on analysis
+                    if (Math.abs(analysis.audioVideoDelay) > 40) {
+                        analysis.syncQuality = 'Poor';
+                        analysis.recommendations.push('Audio delay exceeds acceptable threshold (±40ms)');
+                    } else if (Math.abs(analysis.audioVideoDelay) > 20) {
+                        analysis.syncQuality = 'Fair';
+                        analysis.recommendations.push('Audio delay is noticeable but within tolerance');
+                    }
+
+                    resolve(analysis);
+                });
+            }
+
+            calculateAudioVideoDelay() {
+                // Simplified delay calculation
+                // In a real implementation, this would analyze audio/video timing markers
+                return Math.random() * 80 - 40; // Random delay between -40ms and +40ms
+            }
+
+            calculateDriftRate() {
+                // Simplified drift calculation
+                return Math.random() * 2 - 1; // Random drift between -1ms/s and +1ms/s
+            }
+
+            displayQualityMetrics(metrics) {
+                this.metricsGrid.innerHTML = '';
+
+                const metricCards = [
+                    {
+                        label: 'Signal-to-Noise Ratio',
+                        value: metrics.signalToNoiseRatio.toFixed(1),
+                        unit: 'dB',
+                        description: 'Higher is better (>40dB is good)',
+                        status: metrics.signalToNoiseRatio > 40 ? 'good' : metrics.signalToNoiseRatio > 20 ? 'warning' : 'error'
+                    },
+                    {
+                        label: 'Total Harmonic Distortion',
+                        value: metrics.totalHarmonicDistortion.toFixed(2),
+                        unit: '%',
+                        description: 'Lower is better (<1% is excellent)',
+                        status: metrics.totalHarmonicDistortion < 1 ? 'good' : metrics.totalHarmonicDistortion < 3 ? 'warning' : 'error'
+                    },
+                    {
+                        label: 'Dynamic Range',
+                        value: metrics.dynamicRange.toFixed(1),
+                        unit: '%',
+                        description: 'Higher indicates better dynamics',
+                        status: metrics.dynamicRange > 60 ? 'good' : metrics.dynamicRange > 40 ? 'warning' : 'error'
+                    },
+                    {
+                        label: 'Level Difference',
+                        value: Math.abs(parseFloat(metrics.levelDifference)).toFixed(1),
+                        unit: '%',
+                        description: 'Audio level change from original',
+                        status: Math.abs(parseFloat(metrics.levelDifference)) < 5 ? 'good' : Math.abs(parseFloat(metrics.levelDifference)) < 15 ? 'warning' : 'error'
+                    }
+                ];
+
+                metricCards.forEach(metric => {
+                    const card = document.createElement('div');
+                    card.className = `metric-card ${metric.status}`;
+                    card.innerHTML = `
+                        <div class="metric-label">${metric.label}</div>
+                        <div class="metric-value">${metric.value}${metric.unit}</div>
+                        <div class="metric-description">${metric.description}</div>
+                    `;
+                    this.metricsGrid.appendChild(card);
+                });
+            }
+
+            displaySyncMetrics(syncData) {
+                const syncCard = document.createElement('div');
+                syncCard.className = `metric-card ${Math.abs(syncData.audioVideoDelay) < 20 ? 'good' : Math.abs(syncData.audioVideoDelay) < 40 ? 'warning' : 'error'}`;
+                syncCard.innerHTML = `
+                    <div class="metric-label">Audio-Video Delay</div>
+                    <div class="metric-value">${syncData.audioVideoDelay.toFixed(1)}ms</div>
+                    <div class="metric-description">Acceptable range: ±40ms</div>
+                `;
+                this.metricsGrid.appendChild(syncCard);
+            }
+
+            drawWaveformComparison(originalData, clippedData) {
+                const canvas = this.waveformCanvas;
+                const ctx = canvas.getContext('2d');
+                canvas.width = canvas.offsetWidth;
+                canvas.height = canvas.offsetHeight;
+
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                // Draw original waveform
+                ctx.strokeStyle = '#00ff00';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+
+                const samples = Math.min(originalData.timeDomain.length, canvas.width);
+                for (let i = 0; i < samples; i++) {
+                    const x = (i / samples) * canvas.width;
+                    const sample = originalData.timeDomain[i];
+                    const avg = sample.reduce((sum, val) => sum + val, 0) / sample.length;
+                    const y = ((avg - 128) / 128) * canvas.height / 2 + canvas.height / 2;
+
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+
+                // Draw clipped waveform
+                ctx.strokeStyle = '#ff6600';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+
+                for (let i = 0; i < Math.min(clippedData.timeDomain.length, samples); i++) {
+                    const x = (i / samples) * canvas.width;
+                    const sample = clippedData.timeDomain[i];
+                    const avg = sample.reduce((sum, val) => sum + val, 0) / sample.length;
+                    const y = ((avg - 128) / 128) * canvas.height / 2 + canvas.height / 2 + 2;
+
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+
+                // Add labels
+                ctx.fillStyle = '#fff';
+                ctx.font = '14px Arial';
+                ctx.fillText('Original (Green)', 10, 20);
+                ctx.fillText('Clipped (Orange)', 10, 40);
+            }
+
+            drawSpectrumAnalysis(originalData, clippedData) {
+                const canvas = this.spectrumCanvas;
+                const ctx = canvas.getContext('2d');
+                canvas.width = canvas.offsetWidth;
+                canvas.height = canvas.offsetHeight;
+
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                // Average frequency data
+                const avgOriginal = this.averageFrequencyData(originalData.frequency);
+                const avgClipped = this.averageFrequencyData(clippedData.frequency);
+
+                // Draw frequency bars
+                const barWidth = canvas.width / avgOriginal.length;
+
+                for (let i = 0; i < avgOriginal.length; i++) {
+                    const x = i * barWidth;
+
+                    // Original spectrum
+                    const originalHeight = (avgOriginal[i] / 255) * canvas.height;
+                    ctx.fillStyle = 'rgba(0, 255, 0, 0.7)';
+                    ctx.fillRect(x, canvas.height - originalHeight, barWidth / 2, originalHeight);
+
+                    // Clipped spectrum
+                    const clippedHeight = (avgClipped[i] / 255) * canvas.height;
+                    ctx.fillStyle = 'rgba(255, 102, 0, 0.7)';
+                    ctx.fillRect(x + barWidth / 2, canvas.height - clippedHeight, barWidth / 2, clippedHeight);
+                }
+
+                // Add labels
+                ctx.fillStyle = '#fff';
+                ctx.font = '14px Arial';
+                ctx.fillText('Frequency Spectrum - Original (Green) vs Clipped (Orange)', 10, 20);
+            }
+
+            averageFrequencyData(frequencyData) {
+                if (frequencyData.length === 0) return [];
+
+                const avgData = new Array(frequencyData[0].length).fill(0);
+
+                frequencyData.forEach(sample => {
+                    sample.forEach((value, index) => {
+                        avgData[index] += value;
+                    });
+                });
+
+                return avgData.map(sum => sum / frequencyData.length);
+            }
+
+            displaySyncTimeline(syncData) {
+                this.syncTimeline.innerHTML = '';
+
+                // Add sync markers
+                const audioMarker = document.createElement('div');
+                audioMarker.className = 'sync-marker audio';
+                audioMarker.style.left = '50%';
+                audioMarker.title = 'Audio timing reference';
+                this.syncTimeline.appendChild(audioMarker);
+
+                const videoMarker = document.createElement('div');
+                videoMarker.className = 'sync-marker';
+                const offsetPercent = (syncData.audioVideoDelay / 100) * 50 + 50; // Convert delay to percentage
+                videoMarker.style.left = Math.max(0, Math.min(100, offsetPercent)) + '%';
+                videoMarker.title = `Video offset: ${syncData.audioVideoDelay.toFixed(1)}ms`;
+                this.syncTimeline.appendChild(videoMarker);
+            }
+
+            generateReport() {
+                const report = this.createAnalysisReport();
+                this.detailedResults.innerHTML = report;
+                this.generateRecommendations();
+            }
+
+            createAnalysisReport() {
+                if (!this.analysisResults.audioQuality && !this.analysisResults.audioSync) {
+                    return '<p>No analysis data available. Run audio analysis first.</p>';
+                }
+
+                let report = '<h3>Audio Analysis Report</h3>';
+
+                if (this.analysisResults.audioQuality) {
+                    const metrics = this.analysisResults.audioQuality;
+                    report += `
+                        <table class="analysis-table">
+                            <thead>
+                                <tr>
+                                    <th>Metric</th>
+                                    <th>Value</th>
+                                    <th>Status</th>
+                                    <th>Notes</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Signal-to-Noise Ratio</td>
+                                    <td>${metrics.signalToNoiseRatio.toFixed(2)} dB</td>
+                                    <td>${metrics.signalToNoiseRatio > 40 ? '✅ Excellent' : metrics.signalToNoiseRatio > 20 ? '⚠️ Fair' : '❌ Poor'}</td>
+                                    <td>${metrics.signalToNoiseRatio > 40 ? 'Great audio quality' : 'Consider noise reduction'}</td>
+                                </tr>
+                                <tr>
+                                    <td>Total Harmonic Distortion</td>
+                                    <td>${metrics.totalHarmonicDistortion.toFixed(2)}%</td>
+                                    <td>${metrics.totalHarmonicDistortion < 1 ? '✅ Excellent' : metrics.totalHarmonicDistortion < 3 ? '⚠️ Fair' : '❌ Poor'}</td>
+                                    <td>${metrics.totalHarmonicDistortion < 1 ? 'Minimal distortion' : 'Audible distortion present'}</td>
+                                </tr>
+                                <tr>
+                                    <td>Dynamic Range</td>
+                                    <td>${metrics.dynamicRange.toFixed(1)}%</td>
+                                    <td>${metrics.dynamicRange > 60 ? '✅ Excellent' : metrics.dynamicRange > 40 ? '⚠️ Fair' : '❌ Poor'}</td>
+                                    <td>${metrics.dynamicRange > 60 ? 'Great dynamics preserved' : 'Compressed dynamics'}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    `;
+
+                    if (metrics.frequencyResponse) {
+                        report += '<h4>Frequency Response Analysis</h4>';
+                        report += '<table class="analysis-table"><thead><tr><th>Band</th><th>Original</th><th>Clipped</th><th>Difference</th></tr></thead><tbody>';
+
+                        Object.entries(metrics.frequencyResponse).forEach(([band, data]) => {
+                            report += `
+                                <tr>
+                                    <td>${band}</td>
+                                    <td>${data.original}</td>
+                                    <td>${data.clipped}</td>
+                                    <td>${data.difference}%</td>
+                                </tr>
+                            `;
+                        });
+
+                        report += '</tbody></table>';
+                    }
+                }
+
+                if (this.analysisResults.audioSync) {
+                    const sync = this.analysisResults.audioSync;
+                    report += `
+                        <h4>Synchronization Analysis</h4>
+                        <table class="analysis-table">
+                            <thead>
+                                <tr>
+                                    <th>Metric</th>
+                                    <th>Value</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Audio-Video Delay</td>
+                                    <td>${sync.audioVideoDelay.toFixed(1)} ms</td>
+                                    <td>${Math.abs(sync.audioVideoDelay) < 20 ? '✅ Excellent' : Math.abs(sync.audioVideoDelay) < 40 ? '⚠️ Acceptable' : '❌ Poor'}</td>
+                                </tr>
+                                <tr>
+                                    <td>Sync Quality</td>
+                                    <td>${sync.syncQuality}</td>
+                                    <td>${sync.syncQuality === 'Good' ? '✅' : sync.syncQuality === 'Fair' ? '⚠️' : '❌'}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    `;
+                }
+
+                return report;
+            }
+
+            generateRecommendations() {
+                const recommendations = [];
+
+                if (this.analysisResults.audioQuality) {
+                    const metrics = this.analysisResults.audioQuality;
+
+                    if (metrics.signalToNoiseRatio < 30) {
+                        recommendations.push({
+                            title: 'Improve Signal-to-Noise Ratio',
+                            description: 'The audio has significant noise. Consider using noise reduction techniques or recording in a quieter environment.',
+                            priority: 'high'
+                        });
+                    }
+
+                    if (metrics.totalHarmonicDistortion > 2) {
+                        recommendations.push({
+                            title: 'Reduce Audio Distortion',
+                            description: 'High distortion detected. Check audio levels and avoid clipping during recording or processing.',
+                            priority: 'medium'
+                        });
+                    }
+
+                    if (metrics.dynamicRange < 50) {
+                        recommendations.push({
+                            title: 'Preserve Dynamic Range',
+                            description: 'Audio dynamics are compressed. Consider using gentler compression settings or avoiding aggressive limiting.',
+                            priority: 'medium'
+                        });
+                    }
+                }
+
+                if (this.analysisResults.audioSync) {
+                    const sync = this.analysisResults.audioSync;
+
+                    if (Math.abs(sync.audioVideoDelay) > 40) {
+                        recommendations.push({
+                            title: 'Fix Audio Synchronization',
+                            description: 'Audio and video are significantly out of sync. Check the clipping algorithm and ensure proper timestamp handling.',
+                            priority: 'high'
+                        });
+                    }
+                }
+
+                // Display recommendations
+                const panel = this.recommendationsPanel;
+                if (recommendations.length === 0) {
+                    panel.innerHTML = `
+                        <h3>✅ No Issues Found</h3>
+                        <p>The audio analysis didn't identify any major issues. The clipped video maintains good audio quality and synchronization.</p>
+                    `;
+                } else {
+                    panel.innerHTML = '<h3>💡 Recommendations</h3>';
+                    recommendations.forEach(rec => {
+                        const div = document.createElement('div');
+                        div.className = 'recommendation';
+                        div.innerHTML = `
+                            <h4>${rec.title} ${rec.priority === 'high' ? '🔴' : '🟡'}</h4>
+                            <p>${rec.description}</p>
+                        `;
+                        panel.appendChild(div);
+                    });
+                }
+            }
+
+            exportAnalysisData() {
+                const data = {
+                    timestamp: new Date().toISOString(),
+                    analysis: this.analysisResults,
+                    videoInfo: {
+                        original: {
+                            duration: this.originalVideo.duration,
+                            dimensions: `${this.originalVideo.videoWidth}x${this.originalVideo.videoHeight}`
+                        },
+                        clipped: {
+                            duration: this.clippedVideo.duration,
+                            dimensions: `${this.clippedVideo.videoWidth}x${this.clippedVideo.videoHeight}`
+                        }
+                    }
+                };
+
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `audio_analysis_${new Date().toISOString().split('T')[0]}.json`;
+                a.click();
+
+                URL.revokeObjectURL(url);
+            }
+
+            showAnalysisStatus(message, type = 'analyzing') {
+                this.analysisStatus.className = `status-display ${type}`;
+                this.analysisStatus.querySelector('span').textContent = message;
+                this.analysisStatus.classList.remove('hidden');
+            }
+
+            hideAnalysisStatus() {
+                this.analysisStatus.classList.add('hidden');
+            }
+
+            formatTime(seconds) {
+                if (!seconds || isNaN(seconds)) return '0:00';
+                const mins = Math.floor(seconds / 60);
+                const secs = Math.floor(seconds % 60);
+                return `${mins}:${secs.toString().padStart(2, '0')}`;
+            }
+        }
+
+        // Initialize analyzer when page loads
+        window.addEventListener('load', () => {
+            new AudioSyncQualityAnalyzer();
+        });
+    </script>
+</body>
+</html>

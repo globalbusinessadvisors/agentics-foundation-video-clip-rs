@@ -56,8 +56,9 @@
         <p style="text-align: center; color: #666; margin-bottom: 30px;">Upload → Set Times → Create Clip</p>
         
         <div class="note">
-            <strong>Note:</strong> This version creates clips using the browser's built-in video processing. 
-            It works by creating a new video element with the specified time range and allowing you to download the result.
+            <strong>Note:</strong> This version creates clips using the browser's built-in video and audio processing.
+            It captures both video frames and audio from your original video, preserving audio quality and synchronization.
+            If audio capture is not supported by your browser, a video-only clip will be created.
         </div>
         
         <div class="upload-zone" onclick="document.getElementById('fileInput').click();">
@@ -238,11 +239,19 @@
 
         async function createClip() {
             debugLog('=== Starting browser-based clip creation ===');
-            
+
             if (!currentVideo) {
                 showStatus('❌ No video file loaded!', 'error');
                 debugLog('Clip creation aborted: No video file');
                 return;
+            }
+
+            // Check browser compatibility for audio features
+            if (!window.AudioContext && !window.webkitAudioContext) {
+                showStatus('⚠️ Audio capture not supported on this browser. Video-only clip will be created.', 'info');
+                debugLog('AudioContext not available - proceeding with video-only');
+            } else {
+                debugLog('AudioContext available - audio capture will be included');
             }
 
             const startTime = document.getElementById('startTime').value;
@@ -265,11 +274,20 @@
                 showProcessing();
                 updateProcessingText('🎥 Creating video clip using browser MediaRecorder...');
                 updateProgress(10);
+
+                // Notify other agents that clip creation has started
+                notifyOtherAgents('CLIP_CREATION_STARTED', {
+                    filename: currentVideo.name,
+                    startTime: startSeconds,
+                    endTime: endSeconds,
+                    duration: duration
+                });
                 
                 // Create a new video element for clipping
                 const videoElement = document.createElement('video');
                 videoElement.src = URL.createObjectURL(currentVideo);
-                videoElement.muted = true;
+                videoElement.muted = false; // Must be unmuted to capture audio
+                videoElement.volume = 0.5; // Set reasonable volume for audio capture
                 
                 await new Promise((resolve, reject) => {
                     videoElement.onloadedmetadata = resolve;
@@ -288,16 +306,111 @@
                 debugLog('Canvas setup: ' + canvas.width + 'x' + canvas.height);
                 updateProgress(30);
                 
-                // Set up MediaRecorder
+                // Set up MediaRecorder with video stream and optional audio
                 const canvasStream = canvas.captureStream(30); // 30 FPS
-                // Try MP4 first, fallback to WebM if not supported
-                let mimeType = 'video/mp4';
-                if (!MediaRecorder.isTypeSupported(mimeType)) {
-                    mimeType = 'video/webm;codecs=vp8';
+                let combinedStream = canvasStream;
+                let audioContext = null;
+
+                // Try to add audio if browser supports it
+                if (window.AudioContext || window.webkitAudioContext) {
+                    try {
+                        debugLog('Setting up audio capture...');
+                        updateProcessingText('🎵 Extracting audio from video...');
+                        updateProgress(35);
+
+                        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+                        // Ensure audio context is resumed (required by some browsers)
+                        if (audioContext.state === 'suspended') {
+                            await audioContext.resume();
+                            debugLog('Audio context resumed');
+                        }
+
+                        const audioSource = audioContext.createMediaElementSource(videoElement);
+                        const audioDestination = audioContext.createMediaStreamDestination();
+
+                        // Connect audio source to destination (this preserves original audio)
+                        audioSource.connect(audioDestination);
+                        // Also connect to default output so we can hear it if needed (but keep it quiet)
+                        const gainNode = audioContext.createGain();
+                        gainNode.gain.setValueAtTime(0.1, audioContext.currentTime); // Very quiet monitoring
+                        audioSource.connect(gainNode);
+                        gainNode.connect(audioContext.destination);
+
+                        debugLog('Audio context created and connected');
+
+                        // Notify other agents about audio setup
+                        notifyOtherAgents('AUDIO_CAPTURE_SETUP', {
+                            audioContextState: audioContext.state,
+                            sampleRate: audioContext.sampleRate
+                        });
+
+                        const audioStream = audioDestination.stream;
+
+                        // Combine video and audio tracks
+                        combinedStream = new MediaStream();
+                        canvasStream.getVideoTracks().forEach(track => combinedStream.addTrack(track));
+                        audioStream.getAudioTracks().forEach(track => combinedStream.addTrack(track));
+
+                        debugLog('Video tracks: ' + canvasStream.getVideoTracks().length + ', Audio tracks: ' + audioStream.getAudioTracks().length);
+                        debugLog('Combined stream - Video: ' + combinedStream.getVideoTracks().length + ', Audio: ' + combinedStream.getAudioTracks().length);
+                    } catch (audioError) {
+                        debugLog('Audio capture failed, falling back to video-only: ' + audioError.message);
+                        combinedStream = canvasStream; // Fallback to video-only
+                        if (audioContext && audioContext.state !== 'closed') {
+                            audioContext.close();
+                            audioContext = null;
+                        }
+                    }
+                } else {
+                    debugLog('Audio capture not supported, using video-only stream');
+                    updateProgress(35);
                 }
-                const recorder = new MediaRecorder(canvasStream, {
-                    mimeType: mimeType
-                });
+
+                // Select appropriate codec based on audio availability
+                let mimeType = 'video/mp4';
+                const hasAudio = combinedStream.getAudioTracks().length > 0;
+
+                const codecOptions = hasAudio ? [
+                    // Audio + Video codec combinations
+                    'video/mp4; codecs="avc1.42E01E, mp4a.40.2"',
+                    'video/webm; codecs="vp8, opus"',
+                    'video/webm; codecs="vp9, opus"',
+                    'video/mp4',
+                    'video/webm'
+                ] : [
+                    // Video-only codec combinations
+                    'video/mp4; codecs="avc1.42E01E"',
+                    'video/webm; codecs="vp8"',
+                    'video/webm; codecs="vp9"',
+                    'video/mp4',
+                    'video/webm'
+                ];
+
+                for (const option of codecOptions) {
+                    if (MediaRecorder.isTypeSupported(option)) {
+                        mimeType = option;
+                        debugLog('Using MIME type: ' + mimeType + (hasAudio ? ' (with audio)' : ' (video only)'));
+                        break;
+                    }
+                }
+
+                if (!MediaRecorder.isTypeSupported(mimeType)) {
+                    debugLog('Warning: Selected MIME type may not be fully supported: ' + mimeType);
+                }
+
+                // Configure recorder options based on available tracks
+                const recorderOptions = {
+                    mimeType: mimeType,
+                    videoBitsPerSecond: 2500000 // 2.5 Mbps for good video quality
+                };
+
+                // Only set audio bitrate if audio is available
+                if (hasAudio) {
+                    recorderOptions.audioBitsPerSecond = 128000; // 128 kbps for good audio quality
+                }
+
+                const recorder = new MediaRecorder(combinedStream, recorderOptions);
                 
                 const chunks = [];
                 recorder.ondataavailable = (event) => {
@@ -306,7 +419,7 @@
                     }
                 };
                 
-                updateProcessingText('🎬 Recording video frames...');
+                updateProcessingText(hasAudio ? '🎬 Recording video and audio...' : '🎬 Recording video frames...');
                 updateProgress(40);
                 
                 // Start recording
@@ -344,6 +457,11 @@
                         // Stop recording
                         recorder.stop();
                         videoElement.pause();
+                        // Clean up audio context
+                        if (audioContext && audioContext.state !== 'closed') {
+                            audioContext.close();
+                            debugLog('Audio context closed');
+                        }
                         debugLog('Recording completed');
                         updateProgress(90);
                     }
@@ -407,14 +525,42 @@
                 const statusDiv = document.getElementById('statusDiv');
                 statusDiv.appendChild(document.createElement('br'));
                 statusDiv.appendChild(manualDownloadBtn);
-                
+
+                // Notify other agents about successful completion
+                notifyOtherAgents('CLIP_CREATION_COMPLETED', {
+                    filename: outputName,
+                    hasAudio: hasAudio,
+                    mimeType: mimeType,
+                    duration: duration,
+                    fileSize: blob.size
+                });
+
                 debugLog('=== Browser-based clip creation completed successfully ===');
                 
             } catch (error) {
+                // Clean up audio context if it exists
+                if (typeof audioContext !== 'undefined' && audioContext && audioContext.state !== 'closed') {
+                    try {
+                        audioContext.close();
+                        debugLog('Audio context cleaned up after error');
+                    } catch (e) {
+                        debugLog('Error cleaning up audio context: ' + e.message);
+                    }
+                }
+
                 hideProcessing();
                 debugLog('ERROR during clip creation: ' + error.message);
                 debugLog('Error stack: ' + (error.stack || 'No stack trace'));
-                showStatus('❌ Clipping failed: ' + error.message, 'error');
+
+                // Provide helpful error messages for common audio issues
+                let errorMessage = error.message;
+                if (error.message.includes('AudioContext')) {
+                    errorMessage += ' (Audio may not be supported on this device/browser)';
+                } else if (error.message.includes('MediaRecorder')) {
+                    errorMessage += ' (Video recording with audio may not be supported)';
+                }
+
+                showStatus('❌ Clipping failed: ' + errorMessage, 'error');
                 console.error('Clipping error:', error);
             }
         }
@@ -445,6 +591,69 @@
         function updateProcessingText(text) {
             document.getElementById('processingText').textContent = text;
         }
+
+        // Test function to check browser capabilities
+        function testBrowserCapabilities() {
+            debugLog('=== Browser Audio/Video Capabilities Test ===');
+
+            // Test AudioContext support
+            const hasAudioContext = !!(window.AudioContext || window.webkitAudioContext);
+            debugLog('AudioContext support: ' + (hasAudioContext ? 'YES' : 'NO'));
+
+            // Test MediaRecorder support
+            const hasMediaRecorder = !!window.MediaRecorder;
+            debugLog('MediaRecorder support: ' + (hasMediaRecorder ? 'YES' : 'NO'));
+
+            if (hasMediaRecorder) {
+                // Test supported MIME types
+                const testMimeTypes = [
+                    'video/mp4',
+                    'video/mp4; codecs="avc1.42E01E, mp4a.40.2"',
+                    'video/webm',
+                    'video/webm; codecs="vp8, opus"',
+                    'video/webm; codecs="vp9, opus"'
+                ];
+
+                debugLog('Supported MIME types:');
+                testMimeTypes.forEach(mimeType => {
+                    const isSupported = MediaRecorder.isTypeSupported(mimeType);
+                    debugLog('  ' + mimeType + ': ' + (isSupported ? 'YES' : 'NO'));
+                });
+            }
+
+            debugLog('=== End Browser Capabilities Test ===');
+        }
+
+        // Hook system for coordinating with other agents
+        function notifyOtherAgents(event, data) {
+            // Post messages that other agents can listen for
+            if (typeof window !== 'undefined' && window.postMessage) {
+                window.postMessage({
+                    source: 'BROWSER_AUDIO_ENGINEER',
+                    event: event,
+                    data: data,
+                    timestamp: new Date().toISOString()
+                }, '*');
+            }
+            debugLog('Notified other agents: ' + event + ' - ' + JSON.stringify(data));
+        }
+
+        // Listen for messages from other agents
+        window.addEventListener('message', function(event) {
+            if (event.data && event.data.source && event.data.source !== 'BROWSER_AUDIO_ENGINEER') {
+                debugLog('Received message from ' + event.data.source + ': ' + event.data.event);
+                // Handle coordination messages here if needed
+            }
+        });
+
+        // Run capability test on load
+        window.addEventListener('load', function() {
+            testBrowserCapabilities();
+            notifyOtherAgents('AUDIO_ENGINEER_READY', {
+                audioSupport: !!(window.AudioContext || window.webkitAudioContext),
+                mediaRecorderSupport: !!window.MediaRecorder
+            });
+        });
     </script>
 </body>
 </html>

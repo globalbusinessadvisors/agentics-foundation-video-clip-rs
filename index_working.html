@@ -598,14 +598,41 @@
                     this.updateProcessingStatus('Processing video clip...');
                     this.updateProgress(20);
                     
-                    await this.ffmpeg.exec([
-                        '-i', 'input.mp4',
-                        '-ss', startSeconds.toString(),
-                        '-t', duration.toString(),
-                        '-c', 'copy',
-                        '-avoid_negative_ts', 'make_zero',
-                        'output.mp4'
-                    ]);
+                    // Try optimized command with explicit audio/video stream mapping
+                    try {
+                        await this.ffmpeg.exec([
+                            '-i', 'input.mp4',
+                            '-ss', startSeconds.toString(),
+                            '-t', duration.toString(),
+                            '-map', '0:v?',  // Map video stream if present
+                            '-map', '0:a?',  // Map audio stream if present
+                            '-c:v', 'copy',  // Copy video codec for speed
+                            '-c:a', 'copy',  // Copy audio codec for quality
+                            '-avoid_negative_ts', 'make_zero',
+                            '-async', '1',   // Audio sync adjustment
+                            '-vsync', '2',   // Video sync for compatibility
+                            'output.mp4'
+                        ]);
+                    } catch (primaryError) {
+                        console.warn('Primary command failed, trying fallback with AAC audio encoding...');
+                        this.updateProcessingStatus('Audio copy failed, re-encoding with AAC...');
+
+                        // Fallback: Re-encode audio as AAC for compatibility
+                        await this.ffmpeg.exec([
+                            '-i', 'input.mp4',
+                            '-ss', startSeconds.toString(),
+                            '-t', duration.toString(),
+                            '-map', '0:v?',  // Map video stream if present
+                            '-map', '0:a?',  // Map audio stream if present
+                            '-c:v', 'copy',  // Copy video codec for speed
+                            '-c:a', 'aac',   // Re-encode audio as AAC
+                            '-b:a', '128k',  // Good quality audio bitrate
+                            '-avoid_negative_ts', 'make_zero',
+                            '-async', '1',   // Audio sync adjustment
+                            '-vsync', '2',   // Video sync for compatibility
+                            'output.mp4'
+                        ]);
+                    }
                     
                     this.updateProcessingStatus('Reading processed clip...');
                     this.updateProgress(90);
@@ -622,7 +649,16 @@
                     
                 } catch (error) {
                     console.error('Processing error:', error);
-                    this.showStatus(`Processing failed: ${error.message}`, 'error');
+
+                    // Provide more specific error messages for audio issues
+                    let errorMessage = error.message;
+                    if (errorMessage.includes('codec') || errorMessage.includes('stream')) {
+                        errorMessage = `Audio/Video processing failed: ${errorMessage}. Try with a different video format.`;
+                    } else if (errorMessage.includes('memory') || errorMessage.includes('wasm')) {
+                        errorMessage = `Processing failed due to memory limitations. Try with a shorter clip or smaller video file.`;
+                    }
+
+                    this.showStatus(`Processing failed: ${errorMessage}`, 'error');
                     this.hideProcessing();
                 }
             }

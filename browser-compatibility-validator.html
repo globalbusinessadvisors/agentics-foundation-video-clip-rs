@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Browser Compatibility Validator for Video Clipper</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 2.5em;
+        }
+
+        .test-section {
+            background: white;
+            margin: 20px 0;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .test-section h2 {
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
+        .compatibility-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .feature-test {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+
+        .feature-test h3 {
+            margin-top: 0;
+            color: #495057;
+        }
+
+        .test-result {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 10px 0;
+            padding: 8px;
+            border-radius: 5px;
+        }
+
+        .test-result.pass {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .test-result.fail {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .test-result.warn {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .test-result.loading {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .status-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+        }
+
+        .status-icon.pass { background: #28a745; }
+        .status-icon.fail { background: #dc3545; }
+        .status-icon.warn { background: #ffc107; color: #000; }
+        .status-icon.loading { background: #17a2b8; }
+
+        .browser-info {
+            background: #e9ecef;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .browser-info h3 {
+            margin-top: 0;
+            color: #495057;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .info-item {
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            border-left: 4px solid #007bff;
+        }
+
+        .codec-test {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 15px;
+            align-items: center;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            background: white;
+        }
+
+        .codec-name {
+            font-family: monospace;
+            font-size: 14px;
+        }
+
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+
+        .performance-results {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .performance-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #28a745;
+        }
+
+        .performance-metric {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+        }
+
+        .metric-value {
+            font-weight: bold;
+            color: #007bff;
+        }
+
+        .recommendations {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .recommendations h3 {
+            color: #856404;
+            margin-top: 0;
+        }
+
+        .recommendation {
+            margin: 10px 0;
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+            border-left: 4px solid #ffc107;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #007bff, #17a2b8);
+            width: 0%;
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        @media (max-width: 768px) {
+            .compatibility-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .performance-results {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🧪 Browser Compatibility Validator</h1>
+        <p>Comprehensive testing for video clipper audio functionality across browsers</p>
+    </div>
+
+    <div class="test-section">
+        <h2>📊 Browser Information</h2>
+        <div class="browser-info" id="browserInfo">
+            <h3>Detected Browser Environment</h3>
+            <div class="info-grid" id="browserInfoGrid">
+                <!-- Browser info will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>🎵 Audio/Video API Compatibility</h2>
+        <div class="compatibility-grid" id="apiCompatibility">
+            <!-- API compatibility tests will be populated here -->
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>🎬 Media Codec Support</h2>
+        <div id="codecSupport">
+            <!-- Codec support tests will be populated here -->
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>⚡ Performance Benchmarks</h2>
+        <button id="runPerformanceTests">Run Performance Tests</button>
+        <div class="progress-bar" id="performanceProgress" style="display: none;">
+            <div class="progress-fill" id="performanceProgressFill">0%</div>
+        </div>
+        <div class="performance-results" id="performanceResults">
+            <!-- Performance results will be populated here -->
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>🔧 Recommendations</h2>
+        <div class="recommendations" id="recommendations">
+            <h3>Optimization Recommendations</h3>
+            <div id="recommendationsList">
+                <!-- Recommendations will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class BrowserCompatibilityValidator {
+            constructor() {
+                this.testResults = {};
+                this.browserInfo = {};
+                this.performanceMetrics = {};
+
+                this.initializeBrowserInfo();
+                this.runCompatibilityTests();
+            }
+
+            initializeBrowserInfo() {
+                this.browserInfo = {
+                    userAgent: navigator.userAgent,
+                    platform: navigator.platform,
+                    language: navigator.language,
+                    cookieEnabled: navigator.cookieEnabled,
+                    onLine: navigator.onLine,
+                    hardwareConcurrency: navigator.hardwareConcurrency || 'Unknown',
+                    maxTouchPoints: navigator.maxTouchPoints || 0,
+                    deviceMemory: navigator.deviceMemory || 'Unknown',
+                    connection: navigator.connection ? {
+                        effectiveType: navigator.connection.effectiveType,
+                        downlink: navigator.connection.downlink,
+                        rtt: navigator.connection.rtt
+                    } : 'Unknown'
+                };
+
+                // Parse browser name and version
+                const ua = navigator.userAgent;
+                let browserName = 'Unknown';
+                let browserVersion = 'Unknown';
+
+                if (ua.includes('Chrome/') && !ua.includes('Edg/')) {
+                    browserName = 'Chrome';
+                    browserVersion = ua.match(/Chrome\/([0-9.]+)/)?.[1] || 'Unknown';
+                } else if (ua.includes('Firefox/')) {
+                    browserName = 'Firefox';
+                    browserVersion = ua.match(/Firefox\/([0-9.]+)/)?.[1] || 'Unknown';
+                } else if (ua.includes('Safari/') && !ua.includes('Chrome/')) {
+                    browserName = 'Safari';
+                    browserVersion = ua.match(/Version\/([0-9.]+)/)?.[1] || 'Unknown';
+                } else if (ua.includes('Edg/')) {
+                    browserName = 'Edge';
+                    browserVersion = ua.match(/Edg\/([0-9.]+)/)?.[1] || 'Unknown';
+                }
+
+                this.browserInfo.browserName = browserName;
+                this.browserInfo.browserVersion = browserVersion;
+
+                this.displayBrowserInfo();
+            }
+
+            displayBrowserInfo() {
+                const grid = document.getElementById('browserInfoGrid');
+                const infoItems = [
+                    { label: 'Browser', value: `${this.browserInfo.browserName} ${this.browserInfo.browserVersion}` },
+                    { label: 'Platform', value: this.browserInfo.platform },
+                    { label: 'Language', value: this.browserInfo.language },
+                    { label: 'CPU Cores', value: this.browserInfo.hardwareConcurrency },
+                    { label: 'Device Memory', value: this.browserInfo.deviceMemory + ' GB' },
+                    { label: 'Touch Points', value: this.browserInfo.maxTouchPoints },
+                    { label: 'Online', value: this.browserInfo.onLine ? 'Yes' : 'No' },
+                    { label: 'Connection', value: typeof this.browserInfo.connection === 'object' ?
+                        `${this.browserInfo.connection.effectiveType} (${this.browserInfo.connection.downlink} Mbps)` :
+                        this.browserInfo.connection }
+                ];
+
+                grid.innerHTML = infoItems.map(item => `
+                    <div class="info-item">
+                        <strong>${item.label}:</strong><br>
+                        ${item.value}
+                    </div>
+                `).join('');
+            }
+
+            async runCompatibilityTests() {
+                const tests = [
+                    { name: 'AudioContext Support', test: () => this.testAudioContext() },
+                    { name: 'MediaRecorder Support', test: () => this.testMediaRecorder() },
+                    { name: 'Canvas Support', test: () => this.testCanvas() },
+                    { name: 'Web Audio API', test: () => this.testWebAudioAPI() },
+                    { name: 'MediaStream Support', test: () => this.testMediaStream() },
+                    { name: 'File API Support', test: () => this.testFileAPI() },
+                    { name: 'Blob Support', test: () => this.testBlobSupport() },
+                    { name: 'URL.createObjectURL', test: () => this.testObjectURL() }
+                ];
+
+                const container = document.getElementById('apiCompatibility');
+
+                for (const test of tests) {
+                    const testElement = this.createTestElement(test.name);
+                    container.appendChild(testElement);
+
+                    try {
+                        const result = await test.test();
+                        this.updateTestResult(testElement, result);
+                        this.testResults[test.name] = result;
+                    } catch (error) {
+                        const errorResult = {
+                            status: 'fail',
+                            message: `Test failed: ${error.message}`,
+                            details: error.stack
+                        };
+                        this.updateTestResult(testElement, errorResult);
+                        this.testResults[test.name] = errorResult;
+                    }
+                }
+
+                this.testCodecSupport();
+                this.generateRecommendations();
+            }
+
+            createTestElement(testName) {
+                const element = document.createElement('div');
+                element.className = 'feature-test';
+                element.innerHTML = `
+                    <h3>${testName}</h3>
+                    <div class="test-result loading">
+                        <div class="status-icon loading">⏳</div>
+                        <span>Testing...</span>
+                    </div>
+                `;
+                return element;
+            }
+
+            updateTestResult(element, result) {
+                const resultElement = element.querySelector('.test-result');
+                const statusIcon = element.querySelector('.status-icon');
+
+                resultElement.className = `test-result ${result.status}`;
+                statusIcon.className = `status-icon ${result.status}`;
+
+                const statusSymbols = {
+                    pass: '✓',
+                    fail: '✗',
+                    warn: '⚠',
+                    loading: '⏳'
+                };
+
+                statusIcon.textContent = statusSymbols[result.status];
+
+                const messageElement = resultElement.querySelector('span');
+                messageElement.textContent = result.message;
+
+                if (result.details) {
+                    const detailsElement = document.createElement('div');
+                    detailsElement.style.marginTop = '10px';
+                    detailsElement.style.fontSize = '14px';
+                    detailsElement.style.opacity = '0.8';
+                    detailsElement.textContent = result.details;
+                    resultElement.appendChild(detailsElement);
+                }
+            }
+
+            async testAudioContext() {
+                if (!window.AudioContext && !window.webkitAudioContext) {
+                    return { status: 'fail', message: 'AudioContext not supported' };
+                }
+
+                try {
+                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+                    // Test audio context state
+                    if (audioContext.state === 'suspended') {
+                        // Try to resume (may require user interaction)
+                        try {
+                            await audioContext.resume();
+                        } catch (e) {
+                            return {
+                                status: 'warn',
+                                message: 'AudioContext requires user interaction to start',
+                                details: `State: ${audioContext.state}, Sample Rate: ${audioContext.sampleRate}Hz`
+                            };
+                        }
+                    }
+
+                    const details = `State: ${audioContext.state}, Sample Rate: ${audioContext.sampleRate}Hz, Max Channels: ${audioContext.destination.maxChannelCount}`;
+
+                    audioContext.close();
+
+                    return {
+                        status: 'pass',
+                        message: 'AudioContext fully supported',
+                        details
+                    };
+                } catch (error) {
+                    return {
+                        status: 'fail',
+                        message: 'AudioContext creation failed',
+                        details: error.message
+                    };
+                }
+            }
+
+            async testMediaRecorder() {
+                if (!window.MediaRecorder) {
+                    return { status: 'fail', message: 'MediaRecorder not supported' };
+                }
+
+                try {
+                    // Test with a dummy stream
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 320;
+                    canvas.height = 240;
+                    const stream = canvas.captureStream(30);
+
+                    const recorder = new MediaRecorder(stream);
+                    const supportedMimeTypes = [
+                        'video/mp4',
+                        'video/webm',
+                        'video/webm; codecs="vp8"',
+                        'video/webm; codecs="vp9"'
+                    ].filter(type => MediaRecorder.isTypeSupported(type));
+
+                    return {
+                        status: 'pass',
+                        message: 'MediaRecorder fully supported',
+                        details: `Supported formats: ${supportedMimeTypes.length > 0 ? supportedMimeTypes.join(', ') : 'Default only'}`
+                    };
+                } catch (error) {
+                    return {
+                        status: 'fail',
+                        message: 'MediaRecorder creation failed',
+                        details: error.message
+                    };
+                }
+            }
+
+            async testCanvas() {
+                try {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+
+                    if (!ctx) {
+                        return { status: 'fail', message: 'Canvas 2D context not supported' };
+                    }
+
+                    // Test canvas.captureStream
+                    if (typeof canvas.captureStream !== 'function') {
+                        return {
+                            status: 'warn',
+                            message: 'Canvas capture stream not supported',
+                            details: 'Video recording may not work properly'
+                        };
+                    }
+
+                    const stream = canvas.captureStream(30);
+                    const videoTracks = stream.getVideoTracks();
+
+                    return {
+                        status: 'pass',
+                        message: 'Canvas and capture stream supported',
+                        details: `Video tracks: ${videoTracks.length}`
+                    };
+                } catch (error) {
+                    return {
+                        status: 'fail',
+                        message: 'Canvas test failed',
+                        details: error.message
+                    };
+                }
+            }
+
+            async testWebAudioAPI() {
+                if (!window.AudioContext && !window.webkitAudioContext) {
+                    return { status: 'fail', message: 'Web Audio API not supported' };
+                }
+
+                try {
+                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+                    // Test creating various nodes
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    const analyser = audioContext.createAnalyser();
+                    const destination = audioContext.createMediaStreamDestination();
+
+                    // Test if we can create a media element source
+                    const video = document.createElement('video');
+                    const canCreateMediaElementSource = typeof audioContext.createMediaElementSource === 'function';
+
+                    audioContext.close();
+
+                    return {
+                        status: 'pass',
+                        message: 'Web Audio API fully supported',
+                        details: `Media element source: ${canCreateMediaElementSource ? 'Yes' : 'No'}`
+                    };
+                } catch (error) {
+                    return {
+                        status: 'fail',
+                        message: 'Web Audio API test failed',
+                        details: error.message
+                    };
+                }
+            }
+
+            async testMediaStream() {
+                try {
+                    // Test MediaStream constructor
+                    const stream = new MediaStream();
+
+                    // Test MediaStream methods
+                    const hasAddTrack = typeof stream.addTrack === 'function';
+                    const hasRemoveTrack = typeof stream.removeTrack === 'function';
+                    const hasGetTracks = typeof stream.getTracks === 'function';
+
+                    if (!hasAddTrack || !hasRemoveTrack || !hasGetTracks) {
+                        return {
+                            status: 'warn',
+                            message: 'MediaStream partially supported',
+                            details: `addTrack: ${hasAddTrack}, removeTrack: ${hasRemoveTrack}, getTracks: ${hasGetTracks}`
+                        };
+                    }
+
+                    return {
+                        status: 'pass',
+                        message: 'MediaStream fully supported',
+                        details: 'All required methods available'
+                    };
+                } catch (error) {
+                    return {
+                        status: 'fail',
+                        message: 'MediaStream not supported',
+                        details: error.message
+                    };
+                }
+            }
+
+            async testFileAPI() {
+                const hasFile = typeof File !== 'undefined';
+                const hasFileReader = typeof FileReader !== 'undefined';
+                const hasBlob = typeof Blob !== 'undefined';
+                const hasURL = typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function';
+
+                if (!hasFile || !hasFileReader || !hasBlob || !hasURL) {
+                    return {
+                        status: 'fail',
+                        message: 'File API not fully supported',
+                        details: `File: ${hasFile}, FileReader: ${hasFileReader}, Blob: ${hasBlob}, URL: ${hasURL}`
+                    };
+                }
+
+                return {
+                    status: 'pass',
+                    message: 'File API fully supported',
+                    details: 'All file operations available'
+                };
+            }
+
+            async testBlobSupport() {
+                try {
+                    const blob = new Blob(['test'], { type: 'text/plain' });
+                    const hasSlice = typeof blob.slice === 'function';
+                    const hasStream = typeof blob.stream === 'function';
+                    const hasArrayBuffer = typeof blob.arrayBuffer === 'function';
+
+                    return {
+                        status: 'pass',
+                        message: 'Blob fully supported',
+                        details: `slice: ${hasSlice}, stream: ${hasStream}, arrayBuffer: ${hasArrayBuffer}`
+                    };
+                } catch (error) {
+                    return {
+                        status: 'fail',
+                        message: 'Blob not supported',
+                        details: error.message
+                    };
+                }
+            }
+
+            async testObjectURL() {
+                try {
+                    const blob = new Blob(['test'], { type: 'text/plain' });
+                    const url = URL.createObjectURL(blob);
+                    URL.revokeObjectURL(url);
+
+                    return {
+                        status: 'pass',
+                        message: 'Object URL fully supported',
+                        details: 'Create and revoke operations work'
+                    };
+                } catch (error) {
+                    return {
+                        status: 'fail',
+                        message: 'Object URL not supported',
+                        details: error.message
+                    };
+                }
+            }
+
+            testCodecSupport() {
+                const container = document.getElementById('codecSupport');
+
+                const videoCodecs = [
+                    'video/mp4',
+                    'video/mp4; codecs="avc1.42E01E"',
+                    'video/mp4; codecs="avc1.42E01E, mp4a.40.2"',
+                    'video/webm',
+                    'video/webm; codecs="vp8"',
+                    'video/webm; codecs="vp9"',
+                    'video/webm; codecs="vp8, opus"',
+                    'video/webm; codecs="vp9, opus"',
+                    'video/webm; codecs="vp8, vorbis"'
+                ];
+
+                const audioCodecs = [
+                    'audio/mp4; codecs="mp4a.40.2"',
+                    'audio/webm; codecs="opus"',
+                    'audio/webm; codecs="vorbis"',
+                    'audio/mpeg',
+                    'audio/wav'
+                ];
+
+                container.innerHTML = `
+                    <h3>Video Codec Support (MediaRecorder)</h3>
+                    <div id="videoCodecs"></div>
+                    <h3>Audio Codec Support (MediaRecorder)</h3>
+                    <div id="audioCodecs"></div>
+                `;
+
+                this.displayCodecSupport('videoCodecs', videoCodecs);
+                this.displayCodecSupport('audioCodecs', audioCodecs);
+            }
+
+            displayCodecSupport(containerId, codecs) {
+                const container = document.getElementById(containerId);
+
+                codecs.forEach(codec => {
+                    const isSupported = window.MediaRecorder && MediaRecorder.isTypeSupported(codec);
+                    const codecElement = document.createElement('div');
+                    codecElement.className = 'codec-test';
+
+                    codecElement.innerHTML = `
+                        <span class="codec-name">${codec}</span>
+                        <div class="test-result ${isSupported ? 'pass' : 'fail'}">
+                            <div class="status-icon ${isSupported ? 'pass' : 'fail'}">
+                                ${isSupported ? '✓' : '✗'}
+                            </div>
+                            <span>${isSupported ? 'Supported' : 'Not Supported'}</span>
+                        </div>
+                    `;
+
+                    container.appendChild(codecElement);
+                });
+            }
+
+            async runPerformanceTests() {
+                const button = document.getElementById('runPerformanceTests');
+                const progressBar = document.getElementById('performanceProgress');
+                const progressFill = document.getElementById('performanceProgressFill');
+                const resultsContainer = document.getElementById('performanceResults');
+
+                button.disabled = true;
+                progressBar.style.display = 'block';
+                resultsContainer.innerHTML = '';
+
+                const tests = [
+                    { name: 'Canvas Performance', test: () => this.testCanvasPerformance() },
+                    { name: 'Audio Processing', test: () => this.testAudioProcessingPerformance() },
+                    { name: 'Video Recording', test: () => this.testVideoRecordingPerformance() },
+                    { name: 'Memory Usage', test: () => this.testMemoryUsage() }
+                ];
+
+                for (let i = 0; i < tests.length; i++) {
+                    const test = tests[i];
+                    const progress = ((i + 1) / tests.length) * 100;
+
+                    progressFill.style.width = progress + '%';
+                    progressFill.textContent = `${Math.round(progress)}%`;
+
+                    try {
+                        const result = await test.test();
+                        this.performanceMetrics[test.name] = result;
+                        this.displayPerformanceResult(test.name, result);
+                    } catch (error) {
+                        this.performanceMetrics[test.name] = { error: error.message };
+                        this.displayPerformanceResult(test.name, { error: error.message });
+                    }
+
+                    // Small delay between tests
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                }
+
+                progressBar.style.display = 'none';
+                button.disabled = false;
+            }
+
+            async testCanvasPerformance() {
+                return new Promise((resolve) => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 640;
+                    canvas.height = 480;
+                    const ctx = canvas.getContext('2d');
+
+                    const startTime = performance.now();
+                    let frameCount = 0;
+
+                    const drawFrame = () => {
+                        ctx.fillStyle = `hsl(${frameCount % 360}, 50%, 50%)`;
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        ctx.fillStyle = 'white';
+                        ctx.font = '20px Arial';
+                        ctx.fillText(`Frame ${frameCount}`, 10, 30);
+
+                        frameCount++;
+
+                        if (frameCount < 60) {
+                            requestAnimationFrame(drawFrame);
+                        } else {
+                            const endTime = performance.now();
+                            const duration = endTime - startTime;
+                            const fps = (frameCount / duration) * 1000;
+
+                            resolve({
+                                fps: fps.toFixed(2),
+                                duration: duration.toFixed(2),
+                                frames: frameCount
+                            });
+                        }
+                    };
+
+                    requestAnimationFrame(drawFrame);
+                });
+            }
+
+            async testAudioProcessingPerformance() {
+                if (!window.AudioContext && !window.webkitAudioContext) {
+                    return { error: 'AudioContext not supported' };
+                }
+
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const startTime = performance.now();
+
+                try {
+                    // Create a complex audio graph
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    const analyser = audioContext.createAnalyser();
+                    const destination = audioContext.createMediaStreamDestination();
+
+                    oscillator.connect(gainNode);
+                    gainNode.connect(analyser);
+                    analyser.connect(destination);
+
+                    oscillator.frequency.setValueAtTime(440, audioContext.currentTime);
+                    gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+
+                    oscillator.start();
+
+                    // Let it run for a bit
+                    await new Promise(resolve => setTimeout(resolve, 100));
+
+                    oscillator.stop();
+
+                    const endTime = performance.now();
+                    const setupTime = endTime - startTime;
+
+                    audioContext.close();
+
+                    return {
+                        setupTime: setupTime.toFixed(2),
+                        sampleRate: audioContext.sampleRate,
+                        maxChannels: audioContext.destination.maxChannelCount
+                    };
+                } catch (error) {
+                    audioContext.close();
+                    return { error: error.message };
+                }
+            }
+
+            async testVideoRecordingPerformance() {
+                if (!window.MediaRecorder) {
+                    return { error: 'MediaRecorder not supported' };
+                }
+
+                const startTime = performance.now();
+
+                try {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 320;
+                    canvas.height = 240;
+                    const ctx = canvas.getContext('2d');
+                    const stream = canvas.captureStream(30);
+
+                    const recorder = new MediaRecorder(stream);
+                    const chunks = [];
+
+                    recorder.ondataavailable = (event) => {
+                        if (event.data.size > 0) {
+                            chunks.push(event.data);
+                        }
+                    };
+
+                    // Draw some frames
+                    let frameCount = 0;
+                    const drawFrame = () => {
+                        ctx.fillStyle = `hsl(${frameCount % 360}, 50%, 50%)`;
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        frameCount++;
+
+                        if (frameCount < 30) {
+                            requestAnimationFrame(drawFrame);
+                        }
+                    };
+
+                    recorder.start();
+                    drawFrame();
+
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+
+                    recorder.stop();
+
+                    const blob = await new Promise(resolve => {
+                        recorder.onstop = () => {
+                            resolve(new Blob(chunks, { type: 'video/webm' }));
+                        };
+                    });
+
+                    const endTime = performance.now();
+                    const duration = endTime - startTime;
+
+                    return {
+                        recordingTime: duration.toFixed(2),
+                        outputSize: (blob.size / 1024).toFixed(2),
+                        framesRecorded: frameCount
+                    };
+                } catch (error) {
+                    return { error: error.message };
+                }
+            }
+
+            async testMemoryUsage() {
+                if (!performance.memory) {
+                    return { error: 'Memory API not supported' };
+                }
+
+                const beforeMemory = {
+                    used: performance.memory.usedJSHeapSize,
+                    total: performance.memory.totalJSHeapSize,
+                    limit: performance.memory.jsHeapSizeLimit
+                };
+
+                // Create some memory load
+                const largeBuff = new ArrayBuffer(10 * 1024 * 1024); // 10MB
+                await new Promise(resolve => setTimeout(resolve, 100));
+
+                const afterMemory = {
+                    used: performance.memory.usedJSHeapSize,
+                    total: performance.memory.totalJSHeapSize,
+                    limit: performance.memory.jsHeapSizeLimit
+                };
+
+                return {
+                    beforeUsed: (beforeMemory.used / 1024 / 1024).toFixed(2),
+                    afterUsed: (afterMemory.used / 1024 / 1024).toFixed(2),
+                    heapLimit: (afterMemory.limit / 1024 / 1024).toFixed(2),
+                    difference: ((afterMemory.used - beforeMemory.used) / 1024 / 1024).toFixed(2)
+                };
+            }
+
+            displayPerformanceResult(testName, result) {
+                const container = document.getElementById('performanceResults');
+                const card = document.createElement('div');
+                card.className = 'performance-card';
+
+                if (result.error) {
+                    card.innerHTML = `
+                        <h3>${testName}</h3>
+                        <div class="test-result fail">
+                            <div class="status-icon fail">✗</div>
+                            <span>Error: ${result.error}</span>
+                        </div>
+                    `;
+                } else {
+                    const metrics = Object.entries(result).map(([key, value]) => `
+                        <div class="performance-metric">
+                            <span>${key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}:</span>
+                            <span class="metric-value">${value}${this.getUnit(key)}</span>
+                        </div>
+                    `).join('');
+
+                    card.innerHTML = `
+                        <h3>${testName}</h3>
+                        ${metrics}
+                    `;
+                }
+
+                container.appendChild(card);
+            }
+
+            getUnit(metricName) {
+                const units = {
+                    fps: ' FPS',
+                    duration: ' ms',
+                    setupTime: ' ms',
+                    recordingTime: ' ms',
+                    sampleRate: ' Hz',
+                    outputSize: ' KB',
+                    beforeUsed: ' MB',
+                    afterUsed: ' MB',
+                    heapLimit: ' MB',
+                    difference: ' MB'
+                };
+
+                return units[metricName] || '';
+            }
+
+            generateRecommendations() {
+                const recommendations = [];
+                const container = document.getElementById('recommendationsList');
+
+                // Analyze test results and generate recommendations
+                if (this.testResults['AudioContext Support']?.status === 'warn') {
+                    recommendations.push({
+                        type: 'warning',
+                        title: 'AudioContext Limitations',
+                        description: 'Audio context requires user interaction. Consider adding a "Start Audio" button before video processing.'
+                    });
+                }
+
+                if (this.testResults['MediaRecorder Support']?.status === 'fail') {
+                    recommendations.push({
+                        type: 'critical',
+                        title: 'MediaRecorder Not Supported',
+                        description: 'This browser cannot record video. Consider using FFmpeg.js fallback for video processing.'
+                    });
+                }
+
+                if (this.browserInfo.browserName === 'Safari') {
+                    recommendations.push({
+                        type: 'info',
+                        title: 'Safari Compatibility',
+                        description: 'Safari has limited MediaRecorder support. Prefer MP4 output format and avoid complex audio processing.'
+                    });
+                }
+
+                if (this.browserInfo.deviceMemory && this.browserInfo.deviceMemory < 4) {
+                    recommendations.push({
+                        type: 'warning',
+                        title: 'Low Memory Device',
+                        description: 'Device has limited memory. Recommend shorter clip durations and lower video quality settings.'
+                    });
+                }
+
+                if (this.browserInfo.hardwareConcurrency < 4) {
+                    recommendations.push({
+                        type: 'info',
+                        title: 'Limited CPU Cores',
+                        description: 'Consider enabling progress indicators and limiting concurrent operations for better user experience.'
+                    });
+                }
+
+                // Add browser-specific recommendations
+                if (this.browserInfo.browserName === 'Firefox') {
+                    recommendations.push({
+                        type: 'info',
+                        title: 'Firefox Optimization',
+                        description: 'Firefox works best with WebM output format. Consider using VP8/Opus codec combination.'
+                    });
+                }
+
+                if (this.browserInfo.browserName === 'Chrome') {
+                    recommendations.push({
+                        type: 'info',
+                        title: 'Chrome Optimization',
+                        description: 'Chrome supports both MP4 and WebM formats well. Use MP4 for wider compatibility.'
+                    });
+                }
+
+                // Display recommendations
+                if (recommendations.length === 0) {
+                    container.innerHTML = '<div class="recommendation">✅ No specific recommendations - browser appears fully compatible!</div>';
+                } else {
+                    container.innerHTML = recommendations.map(rec => `
+                        <div class="recommendation">
+                            <strong>${rec.title}:</strong> ${rec.description}
+                        </div>
+                    `).join('');
+                }
+            }
+        }
+
+        // Initialize validator when page loads
+        window.addEventListener('load', () => {
+            const validator = new BrowserCompatibilityValidator();
+
+            // Set up performance test button
+            document.getElementById('runPerformanceTests').addEventListener('click', () => {
+                validator.runPerformanceTests();
+            });
+        });
+    </script>
+</body>
+</html>
